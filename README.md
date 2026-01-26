@@ -1,14 +1,13 @@
 # Obsidian Assistant
 
-An all-in-one assistant plugin that integrates multiple powerful Obsidian plugins into a unified, modular system. Obsidian Assistant combines the functionality of six popular plugins while adding improvements in architecture, internationalization, and user experience.
+An all-in-one assistant plugin that integrates multiple powerful Obsidian plugins into a unified, modular system. Obsidian Assistant combines the functionality of popular plugins while adding improvements in architecture, internationalization, and user experience.
 
 ## 🌟 Features
 
-Obsidian Assistant provides **six independent modules**, each can be enabled or disabled separately:
+Obsidian Assistant provides **five independent modules**, each can be enabled or disabled separately:
 
 ### 📝 MySnippets - CSS Snippet Manager
 Manage your CSS snippets with ease through a convenient status bar menu.
-
 - Toggle snippets on/off with a single click
 - Quick access to snippet files
 - Create new snippets with templates
@@ -17,7 +16,6 @@ Manage your CSS snippets with ease through a convenient status bar menu.
 
 ### 📁 MyFolders - Folder Visibility Manager
 Hide and show folders in your file explorer to reduce visual clutter.
-
 - Hide specific folders by name
 - Support for exact match, `startsWith::`, and `endsWith::` patterns
 - Case-insensitive matching option
@@ -26,7 +24,6 @@ Hide and show folders in your file explorer to reduce visual clutter.
 
 ### ⚡ MyPlugins - Lazy Plugin Loader  
 Optimize Obsidian's startup time by delaying plugin loading.
-
 - Four loading modes: Disabled, Instant, Short delay, Long delay
 - Configure individual plugins with different startup times
 - Separate desktop/mobile configurations
@@ -35,98 +32,36 @@ Optimize Obsidian's startup time by delaying plugin loading.
 
 ### 🎛️ MyStatusBar - Status Bar Organizer
 Customize your status bar by reordering and hiding elements.
-
 - Drag-and-drop reordering
 - Toggle element visibility
 
-### 🔢 MyHeadings & MyFormulas - Number Adder
-Automatically number headings and mathematical formulas in your documents.
-
-**MyHeadings:**
-- 5 numbering styles: `1` (Arabic), `A` (Uppercase), `a` (Lowercase), `一` (Chinese), `①` (Circled)
-- Customizable separators and start values
-- Configurable level ranges (H1-H6)
-- Skip specific headings
-- Auto-numbering mode
-
-**MyFormulas:**
-- Automatic formula numbering with `\tag{}`  
-- Continuous mode: `(1)`, `(2)`, `(3)`...
-- Heading-based mode: `(1.1-1)`, `(1.1-2)`...
-- Adjustable depth control for heading-based mode
-- Code block and table protection
-
-### 🔄 Heading Shifter - Smart Heading Management
-Easily shift and manipulate markdown headings with powerful commands.
-
-**Apply Headings:**
-- Apply Heading 0-6 commands (remove or set specific heading levels)
-- Quick conversion of plain text to headings
-- Configurable hotkeys (e.g., Ctrl+0~6)
-
-**Shift Headings:**
-- Increase/Decrease heading levels in batch
-- Forced increase mode (apply to non-heading lines)
-- Configurable lower limit
-- Optional Tab/Shift-Tab override for quick shifting
-
-**Insert Headings:**
-- Insert at current level (match previous heading)
-- Insert at one level deeper (for sub-sections)
-- Insert at one level higher (for parent sections)
-- Smart detection of context heading level
-
-**Advanced Features:**
-- Style removal (lists, bold, italic, custom patterns)
-- Children list behavior control (3 modes)
-- RegExp-based custom style handling
-- Seamless CodeMirror 6 integration
-
 ### 📏 MySideBar - Advanced Sidebar Manager
 Complete control over your Obsidian sidebars, tabs, and ribbons.
-
-**Core Features:**
 - **Auto Hide**: Automatically collapse and expand sidebars on hover.
-  - **Smart Pinning**: Manually expanding the sidebar "pins" it open, overriding auto-hide.
-  - **Trigger Control**: Customize hover trigger area.
+  - **Smart Pinning**: Manually expanding the sidebar "pins" it open.
   - **Overlay Mode**: Sidebars slide over content without resizing the editor.
 - **Contextual Groups**: Combine two sidebar tabs (Master & Slave) into a single functional unit.
-  - **Masquerade**: Display custom Name and Icon (SVG support) for the group.
-  - **Split View**: Automatically open the Slave view below the Master view when activated.
-  - **Persistent Split**: Remembers the split ratio between Master and Slave.
-  - **Auto-Sort**: Slave tab automatically follows the Master tab when reordered.
-- **Sidebar Tab Manager**:
-  - Drag-and-drop to reorder all sidebar tabs.
-  - Move tabs between Left/Right sidebars or Hide them.
-- **Ribbon Manager**:
-  - Reorder ribbon icons via drag-and-drop.
-  - Hide/Show specific ribbon icons.
+  - **Split View**: Automatically open the Slave view below the Master view.
+  - **Auto-Sort**: Slave tab automatically follows the Master tab.
+- **Sidebar Tab Manager**: Drag-and-drop to reorder all sidebar tabs.
+- **Ribbon Manager**: Reorder and hide ribbon icons.
 
 ---
 
 ## 📦 Installation
-
-### From Release
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/yourusername/obsidian-assistant/releases)
-2. Create a folder named `obsidian-assistant` in your vault's `.obsidian/plugins/` directory
-3. Place the downloaded files into this folder
-4. Restart Obsidian and enable the plugin in Settings → Community Plugins
 
 ### Manual Build
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/obsidian-assistant.git
-cd obsidian-assistant/obsidian-assistant
+cd obsidian-assistant
 
 # Install dependencies
 npm install
 
 # Build the plugin
 npm run build
-
-# The output files will be in the current directory
 ```
 
 ---
@@ -134,15 +69,12 @@ npm run build
 ## 🚀 Usage
 
 ### Module Management
-
 Each module can be independently enabled or disabled in the plugin settings:
-
 1. Open Settings → Obsidian Assistant
 2. Navigate to the module you want to configure
 3. Toggle the "Enable" switch
-4. Configure module-specific settings
 
-### Module-Specific Usage
+### Module-Specific Guides
 
 #### MySnippets
 - Click the CSS snippet icon in the status bar
@@ -159,32 +91,9 @@ Each module can be independently enabled or disabled in the plugin settings:
 #### MyStatusBar
 - Configure element order and visibility in settings
 
-#### MyHeadings
-- Use command: "Number Headings" for manual numbering
-- Enable auto-numbering in settings or control panel
-- Use command: "Configure Headings" to open control panel
-
-#### MyFormulas
-- Use command: "Number Formulas" for manual numbering
-- Enable auto-numbering in settings or control panel
-- Use command: "Configure Formulas" to open control panel
-
-#### Heading Shifter
-- Use "Apply Heading 0-6" commands to set heading levels (useful with hotkeys Ctrl+0~6)
-- Use "Increase/Decrease Headings" to shift heading levels in batch
-- Use "Insert Heading" commands for smart heading insertion at current/deeper/higher levels
-- Enable Tab override in settings to use Tab/Shift-Tab for quick heading shifts
-- Configure style removal and list behavior in settings
-
 #### MySideBar
-- **Auto Hide**: Enable "Auto Hide" for hover expansion. Manual click pins the sidebar open.
-- **Ribbon Organizer**: Drag icons in settings to reorder or click the eye icon to hide.
-- **Tab Organizer**: Drag items in the sidebar list to reorder.
-- **Contextual Groups**: 
-  - Click "Add Group" to bind two views (e.g. Explorer + Outline).
-  - The group acts as a single tab; clicking it opens both views split horizontally.
-  - Use "Unbind" to restore original tabs.
-- **Layout Scan**: Click "Scan Current Layout" to capture new plugins or tabs.
+- **Auto Hide**: Enable "Auto Hide" for hover expansion.
+- **Contextual Groups**: Click "Add Group" to bind two views (e.g. Explorer + Outline).
 
 ---
 
@@ -216,44 +125,8 @@ Obsidian Assistant integrates and enhances the work of several amazing plugin de
 4. **[Kacper Darowski (opisek)](https://opisek.net/)** - Creator of [Status Bar Organizer](https://github.com/Phrisk/obsidian-statusbar-organizer)
    - Original status bar customization system
 
-5. **[Kevin Albrecht (onlyafly)](https://www.kevinalbrecht.com)** - Creator of [Number Headings](https://github.com/onlyafly/number-headings-obsidian)
-   - Original heading numbering algorithm and core logic foundation for the Number Adder enhanced version
-
-6. **[kasahala (k4a-l)](https://github.com/k4a-l)** - Creator of [Heading Shifter](https://github.com/k4a-dev/obsidian-heading-shifter)
-   - Original smart heading manipulation system with apply, shift, and insert features
-
-7. **[Mara V (marah)](https://github.com/marah)** - Creator of [Obsidian Quick Peek Sidebar](https://github.com/marah/obsidian-quick-peek-sidebar)
+5. **[Mara V (marah)](https://github.com/marah)** - Creator of [Obsidian Quick Peek Sidebar](https://github.com/marah/obsidian-quick-peek-sidebar)
    - Original sidebar auto-hide and hover interaction logic
-
-### Enhanced Version Contributors
-
-- **[Randy Allen](https://github.com/RandyAllenEEE)** - Developer of the enhanced Number Adder version
-  - Added formula numbering functionality
-  - Implemented Chinese numbering support (一, 二, 三) and circled numbers (①, ②, ③)
-  - Enhanced with heading-based formula mode and depth control
-  - Improved code block and table protection mechanisms
-
----
-
-## 🎯 Why Obsidian Assistant?
-
-### Benefits of Integration
-
-1. **Unified Management**: Control all modules from a single settings interface
-2. **Reduced Overhead**: One plugin instead of five reduces startup time and memory usage
-3. **Consistent UX**: Unified design language and interaction patterns
-4. **Better Maintenance**: Centralized updates and bug fixes
-5. **Enhanced Architecture**: Modern TypeScript codebase with improved error handling
-6. **Internationalization**: Built-in support for multiple languages
-
-### Key Improvements
-
-- **Modular Architecture**: Each module is independently maintainable
-- **TypeScript**: Full type safety and better IDE support
-- **i18n Support**: Comprehensive internationalization framework
-- **Error Handling**: Robust error recovery mechanisms
-- **Resource Management**: Proper lifecycle management prevents memory leaks
-- **Code Quality**: Modern patterns and best practices
 
 ---
 
@@ -264,52 +137,3 @@ MIT License
 Copyright (c) 2026 Randy Allen
 
 This project integrates code from multiple open-source plugins (see Acknowledgments). Each original plugin retains its original license and copyright. The integration work, TypeScript refactoring, and enhancements are licensed under MIT.
-
----
-
-## 🐛 Bug Reports & Feature Requests
-
-If you encounter any issues or have suggestions:
-
-1. Check existing [Issues](https://github.com/yourusername/obsidian-assistant/issues)
-2. Create a new issue with detailed information
-3. For module-specific issues, please mention which module is affected
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
----
-
-## 📚 Documentation
-
-For detailed documentation on each module:
-
-- [MySnippets Documentation](./docs/mysnippets.md)
-- [MyFolders Documentation](./docs/myfolders.md)
-- [MyPlugins Documentation](./docs/myplugins.md)
-- [MyStatusBar Documentation](./docs/mystatusbar.md)
-- [MyHeadings Documentation](./docs/myheadings.md)
-- [MyFormulas Documentation](./docs/myformulas.md)
-
----
-
-## ⭐ Support
-
-If you find this plugin helpful:
-
-- ⭐ Star the repository
-- 🐛 Report bugs and suggest features
-- 📢 Share with the Obsidian community
-- ☕ Consider supporting the original plugin authors (links in Acknowledgments)
-
----
-
-**Made with ❤️ for the Obsidian community**

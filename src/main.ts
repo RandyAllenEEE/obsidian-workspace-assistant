@@ -10,13 +10,8 @@ import { SnippetsManager } from './snippets/manager';
 import { renderSnippetsSettings } from './snippets/settings-ui';
 import { t } from './i18n/helpers';
 
-import { HeadingsManager } from './headings/manager';
-import { renderHeadingsSettings } from './headings/settings-ui';
-import { FormulasManager } from './formulas/manager';
-import { renderFormulasSettings } from './formulas/settings-ui';
 import { SidebarManager } from './sidebar/manager';
 import { renderSidebarSettings } from './sidebar/settings-ui';
-import { AutoNumberingController } from './utils/auto-numbering';
 
 export default class AssistantPlugin extends Plugin {
     settings: AssistantSettings;
@@ -24,11 +19,7 @@ export default class AssistantPlugin extends Plugin {
     pluginsManager: PluginsManager;
     statusBarManager: StatusBarManager;
     snippetsManager: SnippetsManager;
-    headingsManager: HeadingsManager;
-
-    formulasManager: FormulasManager;
     sidebarManager: SidebarManager;
-    autoNumberingController: AutoNumberingController;
 
     async onload() {
         console.log(t('Loading Obsidian Assistant...'));
@@ -40,26 +31,14 @@ export default class AssistantPlugin extends Plugin {
         this.pluginsManager = new PluginsManager(this.app, this);
         this.statusBarManager = new StatusBarManager(this.app, this);
         this.snippetsManager = new SnippetsManager(this.app, this);
-        this.headingsManager = new HeadingsManager(this.app, this);
-        this.formulasManager = new FormulasManager(this.app, this);
         this.sidebarManager = new SidebarManager(this.app, this);
-
-        // Initialize Auto Controller
-        this.autoNumberingController = new AutoNumberingController(this.app, this, this.headingsManager, this.formulasManager);
 
         // Load modules if enabled
         if (this.settings.myFolders.enabled) await this.foldersManager.onload();
         if (this.settings.myPlugins.enabled) await this.pluginsManager.onload();
         if (this.settings.myStatusBar.enabled) await this.statusBarManager.onload();
         if (this.settings.mySnippets.enabled) await this.snippetsManager.onload();
-        if (this.settings.myHeadings.enabled) await this.headingsManager.onload();
-        if (this.settings.myFormulas.enabled) await this.formulasManager.onload();
         if (this.settings.mySideBar.enabled) await this.sidebarManager.onload();
-
-        // Load Auto Controller if either relevant module is enabled
-        if (this.settings.myHeadings.enabled || this.settings.myFormulas.enabled) {
-            this.autoNumberingController.onload();
-        }
 
         // --- Centralized Command Registration ---
 
@@ -90,23 +69,7 @@ export default class AssistantPlugin extends Plugin {
             },
         });
 
-        // Headings
-        this.addCommand({
-            id: 'configure-headings',
-            name: t('Configure Headings'),
-            callback: () => {
-                if (this.settings.myHeadings.enabled) this.headingsManager.openControlModal();
-            },
-        });
 
-        // Formulas
-        this.addCommand({
-            id: 'configure-formulas',
-            name: t('Configure Formulas'),
-            callback: () => {
-                if (this.settings.myFormulas.enabled) this.formulasManager.openControlModal();
-            },
-        });
 
         this.addSettingTab(new AssistantSettingsTab(this.app, this));
     }
@@ -117,10 +80,7 @@ export default class AssistantPlugin extends Plugin {
         this.pluginsManager?.onunload();
         this.statusBarManager?.onunload();
         this.snippetsManager?.onunload();
-        this.headingsManager?.onunload();
-        this.formulasManager?.onunload();
         this.sidebarManager?.onunload();
-        this.autoNumberingController?.onunload();
     }
 
     async loadSettings() {
@@ -132,24 +92,6 @@ export default class AssistantPlugin extends Plugin {
 
         // 1. Initial Assign for top-level keys
         this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-
-        // 2. Clearer Deep Merge for all modules to ensure default values for new keys
-        // Headings (includes Shifter)
-        if (loadedData?.myHeadings) {
-            this.settings.myHeadings = Object.assign({}, DEFAULT_SETTINGS.myHeadings, loadedData.myHeadings);
-            // Even deeper if needed (e.g. styleToRemove)
-            if (loadedData.myHeadings.styleToRemove) {
-                this.settings.myHeadings.styleToRemove = {
-                    beginning: Object.assign({}, DEFAULT_SETTINGS.myHeadings.styleToRemove.beginning, loadedData.myHeadings.styleToRemove.beginning),
-                    surrounding: Object.assign({}, DEFAULT_SETTINGS.myHeadings.styleToRemove.surrounding, loadedData.myHeadings.styleToRemove.surrounding),
-                };
-            }
-        }
-
-        // Formulas
-        if (loadedData?.myFormulas) {
-            this.settings.myFormulas = Object.assign({}, DEFAULT_SETTINGS.myFormulas, loadedData.myFormulas);
-        }
 
         // Folders
         if (loadedData?.myFolders) {
@@ -229,41 +171,12 @@ class AssistantSettingsTab extends PluginSettingTab {
         this.plugin = plugin;
     }
 
-    private refreshAutoNumberingController() {
-        const anyActive = this.plugin.settings.myHeadings.enabled || this.plugin.settings.myFormulas.enabled;
-
-        // Always unload to clear potential old listeners/state
-        this.plugin.autoNumberingController.onunload();
-
-        if (anyActive) {
-            this.plugin.autoNumberingController.onload();
-        }
-    }
-
     display(): void {
         const { containerEl } = this;
 
         containerEl.empty();
         containerEl.createEl('h2', { text: t('Obsidian Assistant Settings') });
 
-        // Global Settings Section
-        containerEl.createEl('h3', { text: t('Global Settings') });
-
-        new Setting(containerEl)
-            .setName(t('Auto-Numbering Refresh Interval'))
-            .setDesc(t('Time in milliseconds to wait before auto-numbering triggers (after losing focus)'))
-            .addText(text => text
-                .setPlaceholder('1000')
-                .setValue(String(this.plugin.settings.refreshInterval))
-                .onChange(async (value) => {
-                    const interval = parseInt(value);
-                    if (!isNaN(interval) && interval > 0) {
-                        this.plugin.settings.refreshInterval = interval;
-                        await this.plugin.saveSettings();
-                    }
-                }));
-
-        containerEl.createEl('br');
         containerEl.createEl('h3', { text: t('Modules') });
 
 
@@ -343,50 +256,7 @@ class AssistantSettingsTab extends PluginSettingTab {
             }
         );
 
-        // MyHeadings Section
-        this.addPluginSection(
-            containerEl,
-            t('My Headings'),
-            this.plugin.settings.myHeadings.enabled,
-            async (value) => {
-                this.plugin.settings.myHeadings.enabled = value;
-                await this.plugin.saveSettings();
 
-                // Reload logic for Headings + Auto Controller
-                if (value) {
-                    await this.plugin.headingsManager.onload();
-                } else {
-                    this.plugin.headingsManager.onunload();
-                }
-
-                this.refreshAutoNumberingController();
-            },
-            (el) => {
-                renderHeadingsSettings(el, this.plugin.headingsManager);
-            }
-        );
-
-        // MyFormulas Section
-        this.addPluginSection(
-            containerEl,
-            t('My Formulas'),
-            this.plugin.settings.myFormulas.enabled,
-            async (value) => {
-                this.plugin.settings.myFormulas.enabled = value;
-                await this.plugin.saveSettings();
-
-                if (value) {
-                    await this.plugin.formulasManager.onload();
-                } else {
-                    this.plugin.formulasManager.onunload();
-                }
-
-                this.refreshAutoNumberingController();
-            },
-            (el) => {
-                renderFormulasSettings(el, this.plugin.formulasManager);
-            }
-        );
 
         // MySideBar Section
         this.addPluginSection(

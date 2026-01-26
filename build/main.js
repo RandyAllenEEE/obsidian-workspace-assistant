@@ -27,7 +27,7 @@ __export(main_exports, {
   default: () => AssistantPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian27 = require("obsidian");
+var import_obsidian16 = require("obsidian");
 
 // src/settings.ts
 var DEFAULT_SETTINGS = {
@@ -36,10 +36,7 @@ var DEFAULT_SETTINGS = {
   myFolders: null,
   mySideBar: null,
   myStatusBar: null,
-  mySnippets: null,
-  myHeadings: null,
-  myFormulas: null,
-  refreshInterval: 1e3
+  mySnippets: null
 };
 var DEFAULT_MY_FOLDERS_SETTINGS = {
   enabled: true,
@@ -86,44 +83,6 @@ var DEFAULT_MY_SNIPPETS_SETTINGS = {
   showStatusBarIcon: true,
   enabled: true
 };
-var DEFAULT_MY_HEADINGS_SETTINGS = {
-  // Auto Numbering
-  enabled: true,
-  auto: false,
-  firstLevel: 1,
-  maxLevel: 6,
-  headingStyles: ["1", "a", "A", "\u4E00", "\u2460", "1"],
-  headingSeparators: ["", "-", ":", ".", "\u2014", "-"],
-  headingStartValues: ["0", "1", "1", "1", "1", "1"],
-  skipHeadings: "",
-  // Heading Shifter
-  limitHeadingFrom: 1,
-  overrideTab: false,
-  styleToRemove: {
-    beginning: {
-      ul: true,
-      ol: true,
-      userDefined: []
-    },
-    surrounding: {
-      bold: true,
-      italic: true,
-      userDefined: []
-    }
-  },
-  list: {
-    childrenBehavior: "outdent to zero"
-  },
-  editor: {
-    tabSize: 4
-  }
-};
-var DEFAULT_MY_FORMULAS_SETTINGS = {
-  enabled: true,
-  auto: false,
-  mode: "continuous",
-  maxDepth: 4
-};
 var DEFAULT_MY_SIDEBAR_SETTINGS = {
   enabled: true,
   autoHide: {
@@ -157,8 +116,6 @@ DEFAULT_SETTINGS.myFolders = DEFAULT_MY_FOLDERS_SETTINGS;
 DEFAULT_SETTINGS.mySideBar = DEFAULT_MY_SIDEBAR_SETTINGS;
 DEFAULT_SETTINGS.myStatusBar = DEFAULT_STATUS_BAR_SETTINGS;
 DEFAULT_SETTINGS.mySnippets = DEFAULT_MY_SNIPPETS_SETTINGS;
-DEFAULT_SETTINGS.myHeadings = DEFAULT_MY_HEADINGS_SETTINGS;
-DEFAULT_SETTINGS.myFormulas = DEFAULT_MY_FORMULAS_SETTINGS;
 
 // src/folders/manager.ts
 var import_obsidian2 = require("obsidian");
@@ -212,9 +169,6 @@ var en_default = {
   // General
   "Module is disabled.": "Module is disabled.",
   "Obsidian Assistant Settings": "Obsidian Assistant Settings",
-  "Global Settings": "Global Settings",
-  "Auto-Numbering Refresh Interval": "Auto-Numbering Refresh Interval",
-  "Time in milliseconds to wait before auto-numbering triggers (after losing focus)": "Time in milliseconds to wait before auto-numbering triggers (after losing focus)",
   "Modules": "Modules",
   // My Folders
   "My Folders": "My Folders",
@@ -338,87 +292,6 @@ var en_default = {
   '"{fileName}.css" already exists.': '"{fileName}.css" already exists.',
   "Missing name for file": "Missing name for file",
   "Create Snippet": "Create Snippet",
-  // MyHeadings
-  "My Headings": "My Headings",
-  "Number Headings": "Number Headings",
-  "Remove Heading Numbering": "Remove Heading Numbering",
-  "Auto Number Headings": "Auto Number Headings",
-  "Automatically number headings on blur": "Automatically number headings on blur",
-  "Create numbers automatically on blur": "Create numbers automatically on blur (triggers when you click away)",
-  "First Level": "First Level",
-  "Starting heading level for numbering": "Starting heading level for numbering",
-  "Max Level": "Max Level",
-  "Maximum heading level for numbering": "Maximum heading level for numbering",
-  "Heading Styles": "Heading Styles",
-  "Numbering style for each level (1-6)": "Numbering style for each level (1-6)",
-  "Heading Separators": "Heading Separators",
-  "Separator after each level (empty for H1, then 2-6)": "Separator after each level (empty for H1, then 2-6)",
-  "Start Values": "Start Values",
-  "Starting number for each level": "Starting number for each level",
-  "Level": "Level",
-  "Style": "Style",
-  "Separator": "Separator",
-  "Start At": "Start At",
-  // MyFormulas
-  "My Formulas": "My Formulas",
-  "Number Formulas": "Number Formulas",
-  "Remove Formula Numbering": "Remove Formula Numbering",
-  "Auto Number Formulas": "Auto Number Formulas",
-  "Automatically number formulas on blur": "Automatically number formulas on blur",
-  "Automatically number formulas (triggers on blur if enabled)": "Automatically number formulas (triggers on blur if enabled)",
-  "Numbering Mode": "Numbering Mode",
-  "Continuous: 1,2,3... | Heading-based: 1.1-1, 1.1-2...": "Continuous: 1,2,3... | Heading-based: 1.1-1, 1.1-2...",
-  "Continuous (1, 2, 3) or Heading-based (1.1-1, 1.1-2)": "Continuous (1, 2, 3) or Heading-based (1.1-1, 1.1-2)",
-  "Continuous": "Continuous",
-  "Heading-based": "Heading-based",
-  "Configure Formulas": "Configure Formulas",
-  "Heading-Based": "Heading-Based",
-  "Max Heading Depth": "Max Heading Depth",
-  "Depth of headings to include in equation number": "Depth of headings to include in equation number",
-  // Heading Shifter
-  "Auto Numbering": "Auto Numbering",
-  "Heading Shifter": "Heading Shifter",
-  "Lower limit of Heading": "Lower limit of Heading",
-  "The lower Heading Size that will be decreased by the Heading Shift": "The lower Heading Size that will be decreased by the Heading Shift",
-  "Enable override tab behavior": "Enable override tab behavior",
-  'Tab execute "Increase Headings" and Shift-Tab execute "Decrease Headings"': 'Tab execute "Increase Headings" and Shift-Tab execute "Decrease Headings"',
-  "Style to remove": "Style to remove",
-  "If this style is at the position of a line, remove it": "If this style is at the position of a line, remove it",
-  "Beginning": "Beginning",
-  "Unordered list": "Unordered list",
-  "Ordered list": "Ordered list",
-  "User defined": "User defined",
-  "Arbitrary string (regular expression)": "Arbitrary string (regular expression)",
-  "Surrounding": "Surrounding",
-  "Bold": "Bold",
-  "Italic": "Italic",
-  "Children behavior": "Children behavior",
-  "Outdent to 0": "Outdent to 0",
-  "Sync with headings": "Sync with headings",
-  "Noting": "Noting",
-  "Tab size": "Tab size",
-  "Maximum heading level to use for formula numbering": "Maximum heading level to use for formula numbering",
-  "For Heading-based mode: max depth of heading to use as prefix (e.g. 4 means use H4 at most)": "For Heading-based mode: max depth of heading to use as prefix (e.g. 4 means use H4 at most)",
-  // Shifter Commands
-  "Increase Headings": "Increase Headings",
-  "Increase Headings (forced)": "Increase Headings (forced)",
-  "Decrease Headings": "Decrease Headings",
-  "Apply Heading": "Apply Heading",
-  "Insert Heading at current level": "Insert Heading at current level",
-  "Insert Heading at one level deeper": "Insert Heading at one level deeper",
-  "Insert Heading at one level higher": "Insert Heading at one level higher",
-  // Commands & Modals
-  "Configure Headings": "Configure Headings",
-  "Apply Now": "Apply Now",
-  "Apply numbering once without saving to frontmatter": "Apply numbering once without saving to frontmatter",
-  "Save to Frontmatter": "Save to Frontmatter",
-  "Save settings to frontmatter and apply": "Save settings to frontmatter and apply",
-  "Remove Numbering": "Remove Numbering",
-  "Numbering applied (one-time)": "Numbering applied (one-time)",
-  "Formula numbering applied (one-time)": "Formula numbering applied (one-time)",
-  "Settings saved to frontmatter and applied": "Settings saved to frontmatter and applied",
-  "Heading numbering removed": "Heading numbering removed",
-  "Formula numbering removed": "Formula numbering removed",
   // MySideBar
   "My SideBar": "My SideBar",
   "Left Sidebar": "Left Sidebar",
@@ -495,9 +368,6 @@ var zh_default = {
   // General
   "Module is disabled.": "\u6A21\u5757\u5DF2\u7981\u7528\u3002",
   "Obsidian Assistant Settings": "Obsidian Assistant \u8BBE\u7F6E",
-  "Global Settings": "\u5168\u5C40\u8BBE\u7F6E",
-  "Auto-Numbering Refresh Interval": "\u81EA\u52A8\u7F16\u53F7\u5237\u65B0\u95F4\u9694",
-  "Time in milliseconds to wait before auto-numbering triggers (after losing focus)": "\u5931\u7126\u540E\u89E6\u53D1\u81EA\u52A8\u7F16\u53F7\u524D\u7684\u7B49\u5F85\u65F6\u95F4\uFF08\u6BEB\u79D2\uFF09",
   "Modules": "\u6A21\u5757",
   // My Folders
   "My Folders": "\u6211\u7684\u6587\u4EF6\u5939",
@@ -567,6 +437,7 @@ var zh_default = {
   "\u231A Short delay": "\u231A \u77ED\u5EF6\u8FDF",
   "\u{1F4A4} Long delay": "\u{1F4A4} \u957F\u5EF6\u8FDF",
   "{id} after a {type} delay": "\u5EF6\u8FDF {type} \u540E\u542F\u52A8 {id}",
+  // My Status Bar
   "My Status Bar": "\u6211\u7684\u72B6\u6001\u680F",
   "Drag to reorder": "\u62D6\u62FD\u5E76\u6392\u5E8F",
   "Visibility": "\u53EF\u89C1\u6027",
@@ -618,74 +489,6 @@ var zh_default = {
   '"{fileName}.css" already exists.': '"{fileName}.css" \u5DF2\u5B58\u5728\u3002',
   "Missing name for file": "\u6587\u4EF6\u540D\u7F3A\u5931",
   "Create Snippet": "\u521B\u5EFA\u7247\u6BB5",
-  // MyHeadings
-  "My Headings": "\u6211\u7684\u6807\u9898",
-  "Number Headings": "\u6807\u9898\u7F16\u53F7",
-  "Remove Heading Numbering": "\u79FB\u9664\u6807\u9898\u7F16\u53F7",
-  "Auto Number Headings": "\u81EA\u52A8\u6807\u9898\u7F16\u53F7",
-  "Create numbers automatically on blur": "\u81EA\u52A8\u521B\u5EFA\u7F16\u53F7\uFF08\u5728\u5931\u53BB\u7126\u70B9\u65F6\u89E6\u53D1\uFF09",
-  "First Level": "\u8D77\u59CB\u7EA7\u522B",
-  "Max Level": "\u6700\u5927\u7EA7\u522B",
-  "Heading Styles": "\u6807\u9898\u6837\u5F0F",
-  "Level": "\u7EA7\u522B",
-  "Style": "\u6837\u5F0F",
-  "Separator": "\u5206\u9694\u7B26",
-  "Start At": "\u8D77\u59CB\u503C",
-  // MyFormulas
-  "My Formulas": "\u6211\u7684\u516C\u5F0F",
-  "Number Formulas": "\u516C\u5F0F\u7F16\u53F7",
-  "Remove Formula Numbering": "\u79FB\u9664\u516C\u5F0F\u7F16\u53F7",
-  "Auto Number Formulas": "\u81EA\u52A8\u516C\u5F0F\u7F16\u53F7",
-  "Automatically number formulas (triggers on blur if enabled)": "\u81EA\u52A8\u516C\u5F0F\u7F16\u53F7\uFF08\u542F\u7528\u65F6\u5728\u5931\u53BB\u7126\u70B9\u65F6\u89E6\u53D1\uFF09",
-  "Numbering Mode": "\u7F16\u53F7\u6A21\u5F0F",
-  "Continuous (1, 2, 3) or Heading-based (1.1-1, 1.1-2)": "\u8FDE\u7EED (1, 2, 3) \u6216 \u57FA\u4E8E\u6807\u9898 (1.1-1, 1.1-2)",
-  "Continuous": "\u8FDE\u7EED",
-  "Heading-based": "\u57FA\u4E8E\u6807\u9898",
-  "Max Heading Depth": "\u6700\u5927\u6807\u9898\u6DF1\u5EA6",
-  "For Heading-based mode: max depth of heading to use as prefix (e.g. 4 means use H4 at most)": "\u57FA\u4E8E\u6807\u9898\u6A21\u5F0F\uFF1A\u7528\u4F5C\u524D\u7F00\u7684\u6700\u5927\u6807\u9898\u6DF1\u5EA6\uFF08\u4F8B\u5982 4 \u8868\u793A\u6700\u591A\u4F7F\u7528 H4\uFF09",
-  // Heading Shifter
-  "Auto Numbering": "\u81EA\u52A8\u7F16\u53F7",
-  "Heading Shifter": "\u6807\u9898\u79FB\u52A8 (Heading Shifter)",
-  "Lower limit of Heading": "\u6807\u9898\u7EA7\u522B\u4E0B\u9650",
-  "The lower Heading Size that will be decreased by the Heading Shift": "\u6807\u9898\u79FB\u52A8\u529F\u80FD\u53EF\u4EE5\u964D\u4F4E\u7684\u6700\u5C0F\u6807\u9898\u7EA7\u522B",
-  "Enable override tab behavior": "\u542F\u7528\u8986\u76D6 Tab \u952E\u884C\u4E3A",
-  'Tab execute "Increase Headings" and Shift-Tab execute "Decrease Headings"': "Tab \u952E\u6267\u884C\u201C\u589E\u52A0\u6807\u9898\u7EA7\u522B\u201D\uFF0CShift-Tab \u6267\u884C\u201C\u51CF\u5C11\u6807\u9898\u7EA7\u522B\u201D",
-  "Style to remove": "\u8981\u79FB\u9664\u7684\u6837\u5F0F",
-  "If this style is at the position of a line, remove it": "\u5982\u679C\u884C\u4E2D\u6307\u5B9A\u4F4D\u7F6E\u5B58\u5728\u6B64\u6837\u5F0F\uFF0C\u5219\u79FB\u9664\u5B83",
-  "Beginning": "\u5F00\u5934",
-  "Unordered list": "\u65E0\u5E8F\u5217\u8868",
-  "Ordered list": "\u6709\u5E8F\u5217\u8868",
-  "User defined": "\u7528\u6237\u81EA\u5B9A\u4E49",
-  "Arbitrary string (regular expression)": "\u4EFB\u610F\u5B57\u7B26\u4E32 (\u6B63\u5219\u8868\u8FBE\u5F0F)",
-  "Surrounding": "\u5305\u56F4",
-  "Bold": "\u7C97\u4F53",
-  "Italic": "\u659C\u4F53",
-  "Children behavior": "\u5B50\u5143\u7D20\u884C\u4E3A",
-  "Outdent to 0": "\u7F29\u8FDB\u81F3 0",
-  "Sync with headings": "\u4E0E\u6807\u9898\u540C\u6B65",
-  "Noting": "\u65E0\u64CD\u4F5C",
-  "Tab size": "\u5236\u8868\u7B26\u5BBD\u5EA6 (Tab Size)",
-  // Shifter Commands
-  "Increase Headings": "\u589E\u52A0\u6807\u9898\u7EA7\u522B",
-  "Increase Headings (forced)": "\u589E\u52A0\u6807\u9898\u7EA7\u522B (\u5F3A\u5236)",
-  "Decrease Headings": "\u51CF\u5C11\u6807\u9898\u7EA7\u522B",
-  "Apply Heading": "\u5E94\u7528\u6807\u9898\u7EA7\u522B",
-  "Insert Heading at current level": "\u5728\u5F53\u524D\u7EA7\u522B\u63D2\u5165\u6807\u9898",
-  "Insert Heading at one level deeper": "\u5728\u66F4\u6DF1\u4E00\u7EA7\u63D2\u5165\u6807\u9898",
-  "Insert Heading at one level higher": "\u5728\u66F4\u6D45\u4E00\u7EA7\u63D2\u5165\u6807\u9898",
-  // Commands & Modals
-  "Configure Headings": "\u914D\u7F6E\u6807\u9898",
-  "Configure Formulas": "\u914D\u7F6E\u516C\u5F0F",
-  "Apply Now": "\u7ACB\u5373\u5E94\u7528",
-  "Apply numbering once without saving to frontmatter": "\u4E00\u6B21\u6027\u5E94\u7528\u7F16\u53F7\uFF0C\u4E0D\u4FDD\u5B58\u5230frontmatter",
-  "Save to Frontmatter": "\u4FDD\u5B58\u5230 Frontmatter",
-  "Save settings to frontmatter and apply": "\u4FDD\u5B58\u8BBE\u7F6E\u5230frontmatter\u5E76\u5E94\u7528",
-  "Remove Numbering": "\u79FB\u9664\u7F16\u53F7",
-  "Numbering applied (one-time)": "\u7F16\u53F7\u5DF2\u5E94\u7528\uFF08\u4E00\u6B21\u6027\uFF09",
-  "Formula numbering applied (one-time)": "\u516C\u5F0F\u7F16\u53F7\u5DF2\u5E94\u7528\uFF08\u4E00\u6B21\u6027\uFF09",
-  "Settings saved to frontmatter and applied": "\u8BBE\u7F6E\u5DF2\u4FDD\u5B58\u5230frontmatter\u5E76\u5E94\u7528",
-  "Heading numbering removed": "\u6807\u9898\u7F16\u53F7\u5DF2\u79FB\u9664",
-  "Formula numbering removed": "\u516C\u5F0F\u7F16\u53F7\u5DF2\u79FB\u9664",
   // MySideBar
   "My SideBar": "\u6211\u7684\u4FA7\u8FB9\u680F",
   "Left Sidebar": "\u5DE6\u4FA7\u8FB9\u680F",
@@ -2058,1719 +1861,6 @@ function renderSnippetsList(containerEl, manager) {
   }));
 }
 
-// src/headings/manager.ts
-var import_obsidian17 = require("obsidian");
-
-// src/utils/numbering-tokens.ts
-var chineseNumbers = ["\u96F6", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D", "\u4E03", "\u516B", "\u4E5D", "\u5341"];
-var circledNumbers = ["\u24EA", "\u2460", "\u2461", "\u2462", "\u2463", "\u2464", "\u2465", "\u2466", "\u2467", "\u2468", "\u2469", "\u246A", "\u246B", "\u246C", "\u246D", "\u246E", "\u246F", "\u2470", "\u2471", "\u2472", "\u2473"];
-function firstNumberingTokenInStyle(style, startValue) {
-  const startNum = parseInt(startValue);
-  const isNumericStart = !isNaN(startNum);
-  switch (style) {
-    case "1":
-      return { style: "1", value: startNum };
-    case "A":
-      if (isNumericStart) {
-        if (startNum === 0)
-          return { style: "A", value: "&" };
-        if (startNum > 0)
-          return { style: "A", value: String.fromCharCode("A".charCodeAt(0) + startNum - 1) };
-        return { style: "A", value: "A" };
-      }
-      return { style: "A", value: startValue || "A" };
-    case "a":
-      if (isNumericStart) {
-        if (startNum === 0)
-          return { style: "a", value: "&" };
-        if (startNum > 0)
-          return { style: "a", value: String.fromCharCode("a".charCodeAt(0) + startNum - 1) };
-        return { style: "a", value: "a" };
-      }
-      return { style: "a", value: startValue || "a" };
-    case "\u4E00":
-      if (isNumericStart) {
-        if (startNum >= 0 && startNum < chineseNumbers.length) {
-          return { style: "\u4E00", value: chineseNumbers[startNum] };
-        }
-        if (startNum >= chineseNumbers.length) {
-          return { style: "\u4E00", value: String(startNum) };
-        }
-      }
-      return { style: "\u4E00", value: startValue || "\u4E00" };
-    case "\u2460":
-      if (isNumericStart) {
-        if (startNum >= 0 && startNum < circledNumbers.length) {
-          return { style: "\u2460", value: circledNumbers[startNum] };
-        }
-        if (startNum >= circledNumbers.length) {
-          return { style: "\u2460", value: String(startNum) };
-        }
-      }
-      return { style: "\u2460", value: startValue || "\u2460" };
-  }
-  return { style: "1", value: 1 };
-}
-function nextNumberingToken(t2) {
-  switch (t2.style) {
-    case "1":
-      return { style: "1", value: t2.value + 1 };
-    case "A":
-      if (t2.value === "&")
-        return { style: "A", value: "A" };
-      if (t2.value === "Z")
-        return { style: "A", value: "A" };
-      return { style: "A", value: String.fromCharCode(t2.value.charCodeAt(0) + 1) };
-    case "a":
-      if (t2.value === "&")
-        return { style: "a", value: "a" };
-      if (t2.value === "z")
-        return { style: "a", value: "a" };
-      return { style: "a", value: String.fromCharCode(t2.value.charCodeAt(0) + 1) };
-    case "\u4E00":
-      const cnIndex = chineseNumbers.indexOf(t2.value);
-      if (cnIndex > -1 && cnIndex < chineseNumbers.length - 1) {
-        return { style: "\u4E00", value: chineseNumbers[cnIndex + 1] };
-      }
-      if (cnIndex === chineseNumbers.length - 1)
-        return { style: "\u4E00", value: "11" };
-      const cnNum = parseInt(t2.value);
-      if (!isNaN(cnNum))
-        return { style: "\u4E00", value: String(cnNum + 1) };
-      return { style: "\u4E00", value: "\u4E00" };
-    case "\u2460":
-      const cIndex = circledNumbers.indexOf(t2.value);
-      if (cIndex > -1 && cIndex < circledNumbers.length - 1) {
-        return { style: "\u2460", value: circledNumbers[cIndex + 1] };
-      }
-      if (cIndex === circledNumbers.length - 1)
-        return { style: "\u2460", value: "21" };
-      const cNum = parseInt(t2.value);
-      if (!isNaN(cNum))
-        return { style: "\u2460", value: String(cNum + 1) };
-      return { style: "\u2460", value: "\u2460" };
-  }
-  return { style: "1", value: t2.value + 1 };
-}
-function printableNumberingToken(t2) {
-  if (t2.style === "1")
-    return t2.value.toString();
-  return t2.value;
-}
-function makeNumberingString(numberingStack, separators) {
-  let numberingString = "";
-  for (let i = 0; i < numberingStack.length; i++) {
-    if (i === 0) {
-      numberingString += " ";
-    } else {
-      numberingString += separators[i] || "";
-    }
-    numberingString += printableNumberingToken(numberingStack[i]);
-  }
-  return numberingString;
-}
-
-// src/utils/text-processing.ts
-function getRegexForHeaderString(flags) {
-  return /^\s{0,3}#+( )?([0-9a-zA-Z\u4e00-\u9fa5\u2460-\u2473&⓪]+[.:—\-]+( )?)*([0-9a-zA-Z\u4e00-\u9fa5\u2460-\u2473&⓪]+)?( )?[.:—\-]?( )+/g;
-}
-function findRangeInHeaderString(lineText, lineNumber) {
-  const regex = getRegexForHeaderString();
-  if (!lineText)
-    return void 0;
-  const matches = lineText.match(regex);
-  if (matches && matches.length !== 1) {
-    return void 0;
-  }
-  const match = matches ? matches[0] : "";
-  return {
-    from: { line: lineNumber, ch: 0 },
-    to: { line: lineNumber, ch: match.length }
-  };
-}
-function findHeadingPrefixRange(editor, heading) {
-  const lineNumber = heading.position.start.line;
-  const lineText = editor.getLine(lineNumber);
-  return findRangeInHeaderString(lineText, lineNumber);
-}
-function makeHeadingHashString(editor, heading) {
-  const regex = /^\s{0,4}#+/g;
-  const headingLineString = editor.getLine(heading.position.start.line);
-  if (!headingLineString)
-    return void 0;
-  const matches = headingLineString.match(regex);
-  if (!matches || matches.length !== 1)
-    return void 0;
-  return matches[0].trimLeft();
-}
-function replaceRangeEconomically(editor, changes, range, text) {
-  const previousText = editor.getRange(range.from, range.to);
-  if (previousText !== text) {
-    changes.push({
-      from: range.from,
-      to: range.to,
-      text
-    });
-  }
-}
-function restoreCursor(editor, cursor) {
-  const lineCount = editor.lineCount();
-  if (cursor.line < lineCount) {
-    const lineLength = editor.getLine(cursor.line).length;
-    if (cursor.ch <= lineLength) {
-      editor.setCursor(cursor);
-    } else {
-      editor.setCursor(cursor.line, lineLength);
-    }
-  }
-}
-function getCodeBlockRanges(data) {
-  if (!data || !data.sections)
-    return [];
-  return data.sections.filter((section) => section.type === "code").map((section) => ({
-    start: section.position.start.line,
-    end: section.position.end.line
-  }));
-}
-function isLineIgnored(lineNum, lineText, codeRanges) {
-  for (const range of codeRanges) {
-    if (lineNum >= range.start && lineNum <= range.end)
-      return true;
-  }
-  if (/^\s*\|/.test(lineText))
-    return true;
-  return false;
-}
-
-// src/utils/frontmatter.ts
-var import_obsidian12 = require("obsidian");
-function parseHeadingsFrontMatter(fm, defaultSettings) {
-  const settings = Object.assign({}, defaultSettings);
-  if (!fm)
-    return settings;
-  const entry = (0, import_obsidian12.parseFrontMatterEntry)(fm, "number headings");
-  if (entry) {
-    const parts = String(entry).split(",").map((p) => p.trim()).filter((p) => p.length > 0);
-    const rangeRegex = /^\d-\d$/;
-    const stylesRegex = /^[0-9a-zA-Z\u4e00-\u9fa5\u2460-\u2473&⓪]{6}$/;
-    const startValuesRegex = /^\d{6}$/;
-    const separatorsRegex = /^[-:.—]{5}$/;
-    let rangeFound = false;
-    let stylesFound = false;
-    let separatorsFound = false;
-    let startValuesFound = false;
-    for (const part of parts) {
-      if (part === "auto")
-        settings.auto = true;
-      else if (part === "off")
-        settings.enabled = false;
-      else if (part.startsWith("first-level")) {
-        const n = parseInt(part.substring("first-level".length + 1));
-        if (!isNaN(n) && n >= 1 && n <= 6)
-          settings.firstLevel = n;
-      } else if (part.startsWith("max")) {
-        const n = parseInt(part.substring("max".length + 1));
-        if (!isNaN(n) && n >= 1 && n <= 6)
-          settings.maxLevel = n;
-      } else if (!rangeFound && rangeRegex.test(part)) {
-        const [min, max] = part.split("-").map(Number);
-        if (!isNaN(min) && !isNaN(max)) {
-          settings.firstLevel = min;
-          settings.maxLevel = max;
-          rangeFound = true;
-        }
-      } else if (!stylesFound && stylesRegex.test(part)) {
-        settings.headingStyles = part.split("");
-        stylesFound = true;
-      } else if (!startValuesFound && startValuesRegex.test(part)) {
-        settings.headingStartValues = part.split("");
-        startValuesFound = true;
-      } else if (!separatorsFound && separatorsRegex.test(part)) {
-        const seps = part.split("");
-        settings.headingSeparators = ["", seps[0], seps[1], seps[2], seps[3], seps[4]];
-        separatorsFound = true;
-      } else if (part.startsWith("skip")) {
-      }
-    }
-  }
-  return settings;
-}
-function serializeHeadingsFrontMatter(settings) {
-  if (!settings.enabled)
-    return "off";
-  const parts = [];
-  if (settings.auto)
-    parts.push("auto");
-  if (settings.firstLevel !== 1 || settings.maxLevel !== 6) {
-    parts.push(`${settings.firstLevel}-${settings.maxLevel}`);
-  } else {
-    parts.push("1-6");
-  }
-  if (settings.headingStyles && settings.headingStyles.length >= 6) {
-    parts.push(settings.headingStyles.join(""));
-  } else {
-    parts.push("1aA\u4E00\u24601");
-  }
-  if (settings.headingSeparators && settings.headingSeparators.length >= 6) {
-    parts.push(settings.headingSeparators.slice(1, 6).join(""));
-  } else {
-    parts.push(DEFAULT_MY_HEADINGS_SETTINGS.headingSeparators.slice(1, 6).join(""));
-  }
-  if (settings.headingStartValues && settings.headingStartValues.length >= 6) {
-    parts.push(settings.headingStartValues.join(""));
-  } else {
-    parts.push("011111");
-  }
-  return parts.join(", ");
-}
-function parseFormulasFrontMatter(fm, defaultSettings) {
-  const settings = Object.assign({}, defaultSettings);
-  if (!fm)
-    return settings;
-  const entry = (0, import_obsidian12.parseFrontMatterEntry)(fm, "number formulas");
-  if (entry) {
-    const parts = String(entry).split(",").map((p) => p.trim());
-    for (const part of parts) {
-      if (part === "auto")
-        settings.auto = true;
-      else if (part === "off")
-        settings.enabled = false;
-      else if (part === "continuous")
-        settings.mode = "continuous";
-      else if (part.startsWith("heading-based")) {
-        settings.mode = "heading-based";
-        const match = part.match(/heading-based\((\d+)\)/);
-        if (match && match[1]) {
-          const depth = parseInt(match[1]);
-          if (!isNaN(depth) && depth >= 1 && depth <= 6) {
-            settings.maxDepth = depth;
-          }
-        }
-      }
-    }
-  }
-  return settings;
-}
-function serializeFormulasFrontMatter(settings) {
-  if (!settings.enabled)
-    return "off";
-  const parts = [];
-  if (settings.auto)
-    parts.push("auto");
-  if (settings.mode === "heading-based") {
-    const depth = settings.maxDepth || 4;
-    parts.push(`heading-based(${depth})`);
-  } else {
-    parts.push("continuous");
-  }
-  return parts.join(", ");
-}
-async function saveSettingsToFrontMatter(app, file, headingsSettings, formulasSettings) {
-  await app.fileManager.processFrontMatter(file, (fm) => {
-    if (headingsSettings) {
-      fm["number headings"] = serializeHeadingsFrontMatter(headingsSettings);
-    }
-    if (formulasSettings) {
-      fm["number formulas"] = serializeFormulasFrontMatter(formulasSettings);
-    }
-  });
-}
-
-// src/headings/modal.ts
-var import_obsidian13 = require("obsidian");
-var HeadingsControlModal = class extends import_obsidian13.Modal {
-  constructor(app, plugin, file) {
-    super(app);
-    this.plugin = plugin;
-    this.file = file;
-    const cache = app.metadataCache.getFileCache(file);
-    const fm = cache ? cache.frontmatter : void 0;
-    this.settings = JSON.parse(JSON.stringify(parseHeadingsFrontMatter(fm, this.plugin.settings.myHeadings)));
-  }
-  onOpen() {
-    var _a, _b, _c;
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: t("Configure Headings") });
-    new import_obsidian13.Setting(contentEl).setName(t("Auto Number Headings")).setDesc(t("Automatically number headings on blur")).addToggle((toggle) => toggle.setValue(this.settings.auto).onChange((v) => this.settings.auto = v));
-    new import_obsidian13.Setting(contentEl).setName(t("First Level")).setDesc(t("Starting heading level for numbering")).addSlider((slider) => slider.setLimits(1, 6, 1).setValue(this.settings.firstLevel).setDynamicTooltip().onChange((v) => this.settings.firstLevel = v));
-    new import_obsidian13.Setting(contentEl).setName(t("Max Level")).setDesc(t("Maximum heading level for numbering")).addSlider((slider) => slider.setLimits(1, 6, 1).setValue(this.settings.maxLevel).setDynamicTooltip().onChange((v) => this.settings.maxLevel = v));
-    const stylesSetting = new import_obsidian13.Setting(contentEl).setName(t("Heading Styles")).setDesc(t("Numbering style for each level (1-6)")).setClass("heading-styles-setting");
-    const stylesContainer = createDiv({ cls: "heading-styles-container" });
-    stylesSetting.settingEl.appendChild(stylesContainer);
-    const styleOptions = ["1", "a", "A", "\u4E00", "\u2460"];
-    for (let i = 0; i < 6; i++) {
-      const wrapper = stylesContainer.createDiv({ cls: "style-item" });
-      wrapper.createEl("label", { text: `H${i + 1}: ` });
-      const select = wrapper.createEl("select");
-      styleOptions.forEach((option) => {
-        select.createEl("option", { text: option, value: option });
-      });
-      select.value = ((_a = this.settings.headingStyles) == null ? void 0 : _a[i]) || DEFAULT_HEADING_STYLES[i];
-      select.onchange = () => {
-        if (!this.settings.headingStyles)
-          this.settings.headingStyles = [...DEFAULT_HEADING_STYLES];
-        this.settings.headingStyles[i] = select.value;
-      };
-    }
-    const separatorsSetting = new import_obsidian13.Setting(contentEl).setName(t("Heading Separators")).setDesc(t("Separator after each level (empty for H1, then 2-6)")).setClass("heading-separators-setting");
-    const separatorsContainer = createDiv({ cls: "heading-separators-container" });
-    separatorsSetting.settingEl.appendChild(separatorsContainer);
-    for (let i = 1; i < 6; i++) {
-      const wrapper = separatorsContainer.createDiv({ cls: "separator-item" });
-      wrapper.createEl("label", { text: `H${i + 1}: ` });
-      const input = wrapper.createEl("input", { type: "text" });
-      input.value = ((_b = this.settings.headingSeparators) == null ? void 0 : _b[i]) || DEFAULT_HEADING_SEPARATORS[i];
-      input.maxLength = 1;
-      input.style.width = "2em";
-      input.oninput = () => {
-        if (!this.settings.headingSeparators)
-          this.settings.headingSeparators = [...DEFAULT_HEADING_SEPARATORS];
-        this.settings.headingSeparators[i] = input.value || "";
-      };
-    }
-    const startValuesSetting = new import_obsidian13.Setting(contentEl).setName(t("Start Values")).setDesc(t("Starting number for each level")).setClass("heading-start-values-setting");
-    const startValuesContainer = createDiv({ cls: "heading-start-values-container" });
-    startValuesSetting.settingEl.appendChild(startValuesContainer);
-    for (let i = 0; i < 6; i++) {
-      const wrapper = startValuesContainer.createDiv({ cls: "start-value-item" });
-      wrapper.createEl("label", { text: `H${i + 1}: ` });
-      const input = wrapper.createEl("input", { type: "text" });
-      input.value = ((_c = this.settings.headingStartValues) == null ? void 0 : _c[i]) || DEFAULT_HEADING_START_VALUES[i];
-      input.maxLength = 1;
-      input.style.width = "2em";
-      input.oninput = () => {
-        if (!this.settings.headingStartValues)
-          this.settings.headingStartValues = [...DEFAULT_HEADING_START_VALUES];
-        this.settings.headingStartValues[i] = input.value || "1";
-      };
-    }
-    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
-    new import_obsidian13.Setting(buttonContainer).addButton((btn) => btn.setButtonText(t("Apply Now")).setTooltip(t("Apply numbering once without saving to frontmatter")).onClick(() => {
-      this.applyNumbering();
-      this.close();
-    })).addButton((btn) => btn.setButtonText(t("Save to Frontmatter")).setTooltip(t("Save settings to frontmatter and apply")).setCta().onClick(async () => {
-      await this.saveAndApply();
-      this.close();
-    })).addButton((btn) => btn.setButtonText(t("Remove Numbering")).setWarning().onClick(() => {
-      this.plugin.headingsManager.removeNumbering();
-      new import_obsidian13.Notice(t("Heading numbering removed"));
-      this.close();
-    }));
-  }
-  applyNumbering() {
-    const info = this.plugin.headingsManager.getActiveViewInfo();
-    if (!info)
-      return;
-    const { data, editor } = info;
-    const originalSettings = this.plugin.settings.myHeadings;
-    this.plugin.settings.myHeadings = this.settings;
-    this.plugin.headingsManager.updateNumbering(true, true);
-    this.plugin.settings.myHeadings = originalSettings;
-    new import_obsidian13.Notice(t("Numbering applied (one-time)"));
-  }
-  async saveAndApply() {
-    await saveSettingsToFrontMatter(this.app, this.file, this.settings);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    this.plugin.headingsManager.updateNumbering(true, true);
-    new import_obsidian13.Notice(t("Settings saved to frontmatter and applied"));
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/headings/shifter/manager.ts
-var import_obsidian16 = require("obsidian");
-var import_state = require("@codemirror/state");
-var import_view = require("@codemirror/view");
-
-// src/headings/shifter/features/shift.ts
-var import_obsidian14 = require("obsidian");
-
-// src/headings/shifter/utils/constants.ts
-var TABSIZE = 4;
-
-// src/headings/shifter/utils/range.ts
-var setMin = (prev, cur) => {
-  if (prev === void 0 || prev !== void 0 && cur < prev) {
-    return cur;
-  }
-  return prev;
-};
-var setMax = (prev, cur) => {
-  if (prev === void 0 || prev !== void 0 && cur > prev) {
-    return cur;
-  }
-  return prev;
-};
-var createRange = (start, num) => Array.from(Array(num), (v, k) => k + start);
-
-// src/headings/shifter/utils/markdown.ts
-var checkHeading = (content) => {
-  const match = content.match(/^(#+) /);
-  if (!match || !match[1])
-    return 0;
-  return match[1].length;
-};
-var checkFence = (content) => {
-  const backticks = content.match(/^(`{3,})/);
-  if (backticks == null ? void 0 : backticks[1])
-    return { fenceType: "`", fenceNum: backticks[1].length };
-  const tildes = content.match(/^(~{3,})/);
-  if (tildes == null ? void 0 : tildes[1])
-    return { fenceType: "~", fenceNum: tildes[1].length };
-  return null;
-};
-var getFenceStatus = (prev, current) => {
-  if (!current)
-    return prev;
-  if (!prev)
-    return current;
-  if (current.fenceType === prev.fenceType && current.fenceNum >= prev.fenceNum) {
-    return null;
-  }
-  return prev;
-};
-var getHeadingLines = (editor, from, to, options) => {
-  const headingLines = [];
-  let minHeading;
-  let maxHeading;
-  let fence = null;
-  for (let line = Math.min(from, to); line <= Math.max(from, to); line++) {
-    fence = getFenceStatus(fence, checkFence(editor.getLine(line)));
-    if (fence)
-      continue;
-    const heading = checkHeading(editor.getLine(line));
-    if ((options == null ? void 0 : options.includesNoHeadingsLine) || heading > 0) {
-      headingLines.push(line);
-      minHeading = setMin(minHeading, heading);
-      maxHeading = setMax(maxHeading, heading);
-    }
-  }
-  return { headingLines, minHeading, maxHeading };
-};
-var getPreviousHeading = (editor, from) => {
-  let fence = null;
-  const start = from > 0 ? from - 1 : 0;
-  for (let line = start; line >= 0; line--) {
-    fence = getFenceStatus(fence, checkFence(editor.getLine(line)));
-    if (fence)
-      continue;
-    if (checkHeading(editor.getLine(line)) > 0) {
-      return line;
-    }
-  }
-  return void 0;
-};
-var replaceFunc = (str, regExp) => {
-  try {
-    const replaced = str.replace(regExp, "$1");
-    if (replaced !== str) {
-      return replaced;
-    }
-  } catch (error) {
-    console.error(error);
-  }
-  return void 0;
-};
-var removeUsingRegexpStrings = (str, regExpStrings) => {
-  var _a, _b;
-  let removed = str;
-  for (const regExpStr of (_a = regExpStrings.beginning) != null ? _a : []) {
-    const regExp = new RegExp(`^\\s*${regExpStr}(.*)`);
-    const result = replaceFunc(removed, regExp);
-    if (result !== void 0) {
-      removed = result;
-      break;
-    }
-  }
-  for (const regExpStr of (_b = regExpStrings.surrounding) != null ? _b : []) {
-    const regExp = new RegExp(`${regExpStr}(.*)${regExpStr}`);
-    const result = replaceFunc(removed, regExp);
-    if (result !== void 0) {
-      removed = result;
-      break;
-    }
-  }
-  return removed;
-};
-var countIndentLevel = (line, tabSize = TABSIZE) => {
-  var _a;
-  const leadingContent = (_a = line.match(/^(\s*)/)) == null ? void 0 : _a[0];
-  if (!leadingContent)
-    return 0;
-  const tabCount = (leadingContent.match(/\t/g) || []).length;
-  const spaceCount = (leadingContent.match(/ /g) || []).length;
-  return tabCount + Math.floor(spaceCount / tabSize);
-};
-var getListChildrenLines = (editor, {
-  parentLineNumber,
-  tabSize
-}) => {
-  const lineNumbers = [];
-  const startLine = editor.getLine(parentLineNumber);
-  const prevParentIndentLevel = countIndentLevel(startLine, tabSize);
-  for (let lineN = parentLineNumber + 1; lineN < editor.lineCount(); lineN++) {
-    const line = editor.getLine(lineN);
-    const indentLevel = countIndentLevel(line, tabSize);
-    const isBulleted = /^\s*[-*]\s+/.test(line);
-    const isNumbered = /^\s*\d+\.\s+/.test(line);
-    if (!isBulleted && !isNumbered)
-      break;
-    if (indentLevel <= prevParentIndentLevel)
-      break;
-    lineNumbers.push(lineN);
-  }
-  return lineNumbers;
-};
-
-// src/headings/shifter/utils/editorChange.ts
-var composeLineChanges = (editor, lineNumbers, changeCallback, settings) => {
-  const editorChange = [];
-  for (const line of lineNumbers) {
-    const shifted = changeCallback(editor.getLine(line), settings);
-    editorChange.push({
-      text: shifted,
-      from: { line, ch: 0 },
-      to: {
-        line,
-        ch: editor.getLine(line).length
-      }
-    });
-  }
-  return editorChange;
-};
-var createListIndentChanges = (editor, {
-  parentLineNumber,
-  parentIndentLevel,
-  tabSize = TABSIZE
-}) => {
-  const parentLine = editor.getLine(parentLineNumber);
-  const prevParentIndentLevel = countIndentLevel(parentLine, tabSize);
-  const childrenNumbers = getListChildrenLines(editor, {
-    parentLineNumber,
-    tabSize
-  });
-  const indentDelta = parentIndentLevel - prevParentIndentLevel;
-  const changes = [];
-  childrenNumbers.forEach((lineNumber) => {
-    var _a, _b, _c, _d;
-    const line = editor.getLine(lineNumber);
-    const newIndentLevel = Math.max(
-      countIndentLevel(line, tabSize) + indentDelta,
-      0
-    );
-    const match = line.match(
-      /^(?<whitespace>\s*)(?<bullet>[-*]\s*|(?<numbered>\d+\.\s*))(?<heading>#+\s*)?(?<content>.*)$/
-    );
-    const tabsMarkers = "	".repeat(newIndentLevel);
-    const bulletMarkers = ((_a = match == null ? void 0 : match.groups) == null ? void 0 : _a.bullet) || "";
-    const numberedMarkers = ((_b = match == null ? void 0 : match.groups) == null ? void 0 : _b.numbered) || "";
-    const listMarker = bulletMarkers || numberedMarkers;
-    const headingMarkers = ((_c = match == null ? void 0 : match.groups) == null ? void 0 : _c.heading) ? "#".repeat(Math.min(newIndentLevel + 1, 6)) + " " : "";
-    const content = ((_d = match == null ? void 0 : match.groups) == null ? void 0 : _d.content) || "";
-    const newLine = `${tabsMarkers}${listMarker}${headingMarkers}${content}`;
-    changes.push({
-      text: newLine,
-      from: { line: lineNumber, ch: 0 },
-      to: { line: lineNumber, ch: line.length }
-    });
-  });
-  return changes;
-};
-
-// src/headings/shifter/utils/regExp.ts
-var RegExpExample = {
-  beginning: {
-    ol: String.raw`\d+\. `,
-    ul: String.raw`(?:\-|\*) `
-  },
-  surrounding: {
-    // Only one match
-    italic: String.raw`(?:(?<!\*)\*(?!\*)|(?<!_)_(?!_))`,
-    // Same
-    // bold: String.raw`(?:\*\*|__)`,
-    bold: String.raw`(?:(?<!\*)\*\*(?!\*)|(?<!_)__(?!_))`
-  }
-};
-
-// src/headings/shifter/features/apply.ts
-var applyHeading = (chunk, headingSize, settings) => {
-  var _a;
-  const extractRegExp = (settingObj, regExpObj) => {
-    return Object.entries(settingObj != null ? settingObj : {}).flatMap(([k, v]) => {
-      var _a2;
-      if (Array.isArray(v)) {
-        return v;
-      }
-      if (k in regExpObj && v === true) {
-        return [(_a2 = regExpObj[k]) != null ? _a2 : []];
-      }
-      return [];
-    });
-  };
-  const bulletRegExp = /\s*(- \[.+\]|-|\*|[0-9]+)\s+/;
-  const headingRegExp = /#+\s+/;
-  const isBullet = ((_a = settings == null ? void 0 : settings.list) == null ? void 0 : _a.childrenBehavior) === "sync with headings" && bulletRegExp.test(chunk);
-  let removed = chunk;
-  if (!checkHeading(chunk)) {
-    removed = (settings == null ? void 0 : settings.styleToRemove) ? removeUsingRegexpStrings(chunk, {
-      beginning: extractRegExp(
-        {
-          ...settings.styleToRemove.beginning,
-          ul: !isBullet && settings.styleToRemove.beginning.ul
-        },
-        RegExpExample.beginning
-      ),
-      surrounding: extractRegExp(
-        settings.styleToRemove.surrounding,
-        RegExpExample.surrounding
-      )
-    }) : chunk;
-  }
-  const leadingMarkersRegExp = isBullet ? new RegExp(
-    `^(?:${bulletRegExp.source}${headingRegExp.source}|${bulletRegExp.source})`
-  ) : new RegExp(`^${headingRegExp.source}`);
-  let capturedBullet = "-";
-  const principleText = removed.replace(leadingMarkersRegExp, (match, p1) => {
-    if (isBullet && p1) {
-      capturedBullet = p1;
-      const m = match.match(bulletRegExp);
-      if (m && m[1])
-        capturedBullet = m[1];
-    }
-    return "";
-  });
-  const bulletMarkers = `${"	".repeat(Math.max(headingSize - 1, 0))}${capturedBullet} `;
-  const headingMarkers = "#".repeat(Math.max(headingSize, 0)) + (headingSize > 0 ? " " : "");
-  const leadingMarkers = isBullet ? `${bulletMarkers}${headingMarkers}` : headingMarkers;
-  return leadingMarkers + principleText;
-};
-var createListIndentChangesByListBehavior = (editor, {
-  listBehavior,
-  tabSize = TABSIZE,
-  parentIndentLevel,
-  parentLineNumber
-}) => {
-  if (listBehavior !== "outdent to zero" && listBehavior !== "sync with headings") {
-    return [];
-  }
-  const parentIndentLevelByBehavior = listBehavior === "sync with headings" ? (
-    // follow parent
-    Math.max(0, parentIndentLevel)
-  ) : (
-    // Force the next line of parent to be 0
-    -countIndentLevel(editor.getLine(parentLineNumber + 1), tabSize) + countIndentLevel(editor.getLine(parentLineNumber), tabSize)
-  );
-  const indentChanges = createListIndentChanges(editor, {
-    parentLineNumber,
-    parentIndentLevel: parentIndentLevelByBehavior,
-    tabSize
-  });
-  return indentChanges;
-};
-var ApplyHeading = class {
-  constructor(settings, headingSize) {
-    this.editorCallback = (editor) => {
-      var _a;
-      const lines = createRange(
-        editor.getCursor("from").line,
-        editor.getCursor("to").line - editor.getCursor("from").line + 1
-      );
-      const isOneLine = editor.getCursor("from").line === editor.getCursor("to").line;
-      const lastHeaderLineNumber = (_a = lines[lines.length - 1]) != null ? _a : 0;
-      const headingsChanges = composeLineChanges(
-        editor,
-        lines,
-        (chunk) => applyHeading(chunk, this.headingSize, this.settings)
-      );
-      const indentChanges = createListIndentChangesByListBehavior(editor, {
-        parentIndentLevel: this.headingSize - 1,
-        tabSize: this.settings.editor.tabSize,
-        listBehavior: this.settings.list.childrenBehavior,
-        parentLineNumber: lastHeaderLineNumber
-      });
-      editor.transaction({
-        changes: [...headingsChanges, ...indentChanges]
-      });
-      if (isOneLine) {
-        editor.setCursor(editor.getCursor("anchor").line);
-      }
-      return true;
-    };
-    this.createCommand = () => {
-      return {
-        id: `heading-shifter-apply-heading-${this.headingSize}`,
-        name: `${t("Apply Heading")} ${this.headingSize}`,
-        icon: `headingShifter_heading${this.headingSize}`,
-        editorCallback: this.editorCallback
-      };
-    };
-    this.settings = settings;
-    this.headingSize = headingSize;
-  }
-};
-
-// src/headings/shifter/features/shift.ts
-var shiftHeading = (chunk, dir, settings) => {
-  const heading = checkHeading(chunk);
-  return applyHeading(chunk, heading + dir, settings);
-};
-var increaseHeading = (chunk, settings) => {
-  return shiftHeading(chunk, 1, settings);
-};
-var decreaseHeading = (chunk, settings) => {
-  return shiftHeading(chunk, -1, settings);
-};
-var IncreaseHeading = class {
-  constructor(settings, includesNoHeadingsLine) {
-    this.editorCallback = (editor) => {
-      const { headingLines, maxHeading } = getHeadingLines(
-        editor,
-        editor.getCursor("from").line,
-        editor.getCursor("to").line,
-        {
-          includesNoHeadingsLine: this.includesNoHeadingsLine
-        }
-      );
-      if (maxHeading !== void 0 && maxHeading >= 6) {
-        new import_obsidian14.Notice("Cannot Increase (contains more than Heading 6)");
-        return true;
-      }
-      const isOneLine = editor.getCursor("from").line === editor.getCursor("to").line;
-      const editorChange = composeLineChanges(
-        editor,
-        headingLines,
-        increaseHeading,
-        this.settings
-      );
-      editor.transaction({
-        changes: editorChange
-      });
-      if (isOneLine) {
-        editor.setCursor(editor.getCursor("anchor").line);
-      }
-      return editorChange.length ? true : false;
-    };
-    this.createCommand = () => {
-      return {
-        id: `heading-shifter-increase-heading${this.includesNoHeadingsLine ? "-forced" : ""}`,
-        name: this.includesNoHeadingsLine ? t("Increase Headings (forced)") : t("Increase Headings"),
-        icon: "headingShifter_increaseIcon",
-        // Should check if icon exists or use default
-        editorCallback: this.editorCallback
-      };
-    };
-    this.check = (editor) => {
-      const { maxHeading } = getHeadingLines(
-        editor,
-        editor.getCursor("from").line,
-        editor.getCursor("to").line
-      );
-      if (maxHeading === void 0)
-        return false;
-      return this.settings.overrideTab;
-    };
-    this.settings = settings;
-    this.includesNoHeadingsLine = includesNoHeadingsLine;
-  }
-};
-var DecreaseHeading = class {
-  constructor(settings) {
-    this.editorCallback = (editor) => {
-      const { headingLines, minHeading } = getHeadingLines(
-        editor,
-        editor.getCursor("from").line,
-        editor.getCursor("to").line
-      );
-      if (minHeading !== void 0 && minHeading <= Number(this.settings.limitHeadingFrom)) {
-        new import_obsidian14.Notice(
-          `Cannot Decrease (contains less than Heading${Number(
-            this.settings.limitHeadingFrom
-          )})`
-        );
-        return true;
-      }
-      const isOneLine = editor.getCursor("from").line === editor.getCursor("to").line;
-      const editorChange = composeLineChanges(
-        editor,
-        headingLines,
-        decreaseHeading,
-        this.settings
-      );
-      editor.transaction({
-        changes: editorChange
-      });
-      if (isOneLine) {
-        editor.setCursor(editor.getCursor("anchor").line);
-      }
-      return editorChange.length ? true : false;
-    };
-    this.createCommand = () => {
-      return {
-        id: "heading-shifter-decrease-heading",
-        name: t("Decrease Headings"),
-        icon: "headingShifter_decreaseIcon",
-        editorCallback: this.editorCallback
-      };
-    };
-    this.check = (editor) => {
-      const { maxHeading } = getHeadingLines(
-        editor,
-        editor.getCursor("from").line,
-        editor.getCursor("to").line
-      );
-      if (maxHeading === void 0)
-        return false;
-      return this.settings.overrideTab;
-    };
-    this.settings = settings;
-  }
-};
-
-// src/headings/shifter/features/insert.ts
-var import_obsidian15 = require("obsidian");
-var InsertHeadingAtCurrentLevel = class {
-  constructor(settings) {
-    this.editorCallback = (editor) => {
-      const cursorLine = editor.getCursor("from").line;
-      const lastHeadingLine = getPreviousHeading(editor, cursorLine);
-      const headingLevel = lastHeadingLine !== void 0 ? checkHeading(editor.getLine(lastHeadingLine)) : 0;
-      const targetHeadingLevel = headingLevel;
-      const headingChanges = composeLineChanges(
-        editor,
-        [cursorLine],
-        (chunk) => applyHeading(chunk, targetHeadingLevel, this.settings)
-      );
-      const indentChanges = createListIndentChangesByListBehavior(editor, {
-        parentIndentLevel: targetHeadingLevel - 1,
-        tabSize: this.settings.editor.tabSize,
-        listBehavior: this.settings.list.childrenBehavior,
-        parentLineNumber: cursorLine
-      });
-      editor.transaction({
-        changes: [...headingChanges, ...indentChanges]
-      });
-      editor.setCursor(editor.getCursor().line);
-      return true;
-    };
-    this.createCommand = () => {
-      return {
-        id: `heading-shifter-insert-heading-current`,
-        name: t("Insert Heading at current level"),
-        icon: `headingShifter_heading`,
-        editorCallback: this.editorCallback
-      };
-    };
-    this.settings = settings;
-  }
-};
-var InsertHeadingAtDeeperLevel = class {
-  constructor(settings) {
-    this.editorCallback = (editor) => {
-      const cursorLine = editor.getCursor("from").line;
-      const lastHeadingLine = getPreviousHeading(editor, cursorLine);
-      const headingLevel = lastHeadingLine ? checkHeading(editor.getLine(lastHeadingLine)) : 0;
-      if (headingLevel + 1 > 6) {
-        new import_obsidian15.Notice("Cannot Increase (contains more than Heading 6)");
-        return true;
-      }
-      const targetHeadingLevel = headingLevel + 1;
-      const headingChanges = composeLineChanges(
-        editor,
-        [cursorLine],
-        (chunk) => applyHeading(chunk, targetHeadingLevel, this.settings)
-      );
-      const indentChanges = createListIndentChangesByListBehavior(editor, {
-        parentIndentLevel: targetHeadingLevel - 1,
-        tabSize: this.settings.editor.tabSize,
-        listBehavior: this.settings.list.childrenBehavior,
-        parentLineNumber: cursorLine
-      });
-      editor.transaction({
-        changes: [...headingChanges, ...indentChanges]
-      });
-      editor.setCursor(editor.getCursor().line);
-      return true;
-    };
-    this.createCommand = () => {
-      return {
-        id: `heading-shifter-insert-heading-deeper`,
-        name: t("Insert Heading at one level deeper"),
-        icon: `headingShifter_heading`,
-        editorCallback: this.editorCallback
-      };
-    };
-    this.settings = settings;
-  }
-};
-var InsertHeadingAtHigherLevel = class {
-  constructor(settings) {
-    this.editorCallback = (editor) => {
-      const cursorLine = editor.getCursor("from").line;
-      const lastHeadingLine = getPreviousHeading(editor, cursorLine);
-      const headingLevel = lastHeadingLine ? checkHeading(editor.getLine(lastHeadingLine)) : 0;
-      const targetHeadingLevel = headingLevel - 1;
-      const headingChanges = composeLineChanges(
-        editor,
-        [cursorLine],
-        (chunk) => applyHeading(chunk, targetHeadingLevel, this.settings)
-      );
-      const indentChanges = createListIndentChangesByListBehavior(editor, {
-        parentIndentLevel: targetHeadingLevel,
-        tabSize: this.settings.editor.tabSize,
-        listBehavior: this.settings.list.childrenBehavior,
-        parentLineNumber: cursorLine
-      });
-      editor.transaction({
-        changes: [...headingChanges, ...indentChanges]
-      });
-      editor.setCursor(editor.getCursor().line);
-      return true;
-    };
-    this.createCommand = () => {
-      return {
-        id: `heading-shifter-insert-heading-higher`,
-        name: t("Insert Heading at one level higher"),
-        icon: `headingShifter_heading`,
-        editorCallback: this.editorCallback
-      };
-    };
-    this.settings = settings;
-  }
-};
-
-// src/headings/shifter/manager.ts
-var HEADINGS = [0, 1, 2, 3, 4, 5, 6];
-var ShifterManager = class {
-  constructor(app, plugin) {
-    this.app = app;
-    this.plugin = plugin;
-  }
-  onload() {
-    this.addCommands();
-  }
-  addCommands() {
-    const settings = this.plugin.settings.myHeadings;
-    const increaseHeading2 = new IncreaseHeading(settings, false);
-    const increaseHeadingForced = new IncreaseHeading(settings, true);
-    const decreaseHeading2 = new DecreaseHeading(settings);
-    const insertHeadingAtCurrentLabel = new InsertHeadingAtCurrentLevel(settings);
-    const insertHeadingAtDeeperLevel = new InsertHeadingAtDeeperLevel(settings);
-    const insertHeadingAtHigherLevel = new InsertHeadingAtHigherLevel(settings);
-    HEADINGS.forEach((heading) => {
-      const applyHeadingCmd = new ApplyHeading(settings, heading);
-      this.plugin.addCommand({
-        ...applyHeadingCmd.createCommand()
-        // Unified naming: Use the ID from the command itself (e.g., 'shifter-apply-heading-0')
-        // Obsidian will prefix with 'obsidian-assistant:' automatically.
-      });
-    });
-    this.plugin.addCommand(increaseHeading2.createCommand());
-    this.plugin.addCommand(increaseHeadingForced.createCommand());
-    this.plugin.addCommand(decreaseHeading2.createCommand());
-    this.plugin.addCommand(insertHeadingAtCurrentLabel.createCommand());
-    this.plugin.addCommand(insertHeadingAtDeeperLevel.createCommand());
-    this.plugin.addCommand(insertHeadingAtHigherLevel.createCommand());
-    if (settings.overrideTab) {
-      this.plugin.registerEditorExtension(
-        import_state.Prec.high(
-          import_view.keymap.of([
-            {
-              key: "Tab",
-              run: this.createKeyMapRunCallback({
-                check: increaseHeading2.check,
-                run: increaseHeading2.editorCallback
-              })
-            }
-          ])
-        )
-      );
-      this.plugin.registerEditorExtension(
-        import_state.Prec.high(
-          import_view.keymap.of([
-            {
-              key: "s-Tab",
-              run: this.createKeyMapRunCallback({
-                check: decreaseHeading2.check,
-                run: decreaseHeading2.editorCallback
-              })
-            }
-          ])
-        )
-      );
-    }
-  }
-  // Helper from ObsidianService
-  getEditorFromState(state) {
-    var _a, _b;
-    try {
-      return (_b = (_a = state.field(import_obsidian16.editorInfoField)) == null ? void 0 : _a.editor) != null ? _b : null;
-    } catch (e) {
-      console.error("Failed to get editor from state:", e);
-      return null;
-    }
-  }
-  createKeyMapRunCallback(config) {
-    const check = config.check || (() => true);
-    const { run } = config;
-    return (view) => {
-      const editor = this.getEditorFromState(view.state);
-      if (!editor) {
-        return false;
-      }
-      if (!check(editor)) {
-        return false;
-      }
-      return run(editor);
-    };
-  }
-};
-
-// src/headings/manager.ts
-var DEFAULT_HEADING_STYLES = ["1", "a", "A", "\u4E00", "\u2460", "1"];
-var DEFAULT_HEADING_SEPARATORS = ["", "-", ":", ".", "\u2014", "-"];
-var DEFAULT_HEADING_START_VALUES = ["0", "1", "1", "1", "1", "1"];
-var HeadingsManager = class {
-  constructor(app, plugin) {
-    this.isLoaded = false;
-    this.app = app;
-    this.plugin = plugin;
-    this.shifterManager = new ShifterManager(app, plugin);
-  }
-  async onload() {
-    if (this.isLoaded)
-      return;
-    this.isLoaded = true;
-    this.shifterManager.onload();
-  }
-  openControlModal() {
-    if (!this.isLoaded)
-      return;
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian17.MarkdownView);
-    if (activeView && activeView.file) {
-      new HeadingsControlModal(this.app, this.plugin, activeView.file).open();
-    }
-  }
-  onunload() {
-    if (!this.isLoaded)
-      return;
-    this.isLoaded = false;
-    this.shifterManager.onunload();
-  }
-  getActiveViewInfo() {
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian17.MarkdownView);
-    if (activeView && activeView.file) {
-      const data = this.app.metadataCache.getFileCache(activeView.file);
-      const editor = activeView.editor;
-      if (data && editor) {
-        return { activeView, data, editor };
-      }
-    }
-    return void 0;
-  }
-  getEffectiveSettings(fm) {
-    return parseHeadingsFrontMatter(fm, this.plugin.settings.myHeadings);
-  }
-  // Returns true if changes were made
-  updateNumbering(force = false, performRestore = true) {
-    var _a;
-    const info = this.getActiveViewInfo();
-    if (!info)
-      return false;
-    const { data, editor } = info;
-    const settings = this.getEffectiveSettings(data.frontmatter);
-    if (!settings.enabled && !force)
-      return false;
-    const cursorBefore = editor.getCursor();
-    const scrollBefore = editor.getScrollInfo();
-    const headings = (_a = data.headings) != null ? _a : [];
-    if (headings.length === 0)
-      return false;
-    const codeRanges = getCodeBlockRanges(data);
-    const headingStyles = settings.headingStyles || DEFAULT_HEADING_STYLES;
-    const headingSeparators = settings.headingSeparators || DEFAULT_HEADING_SEPARATORS;
-    const headingStartValues = settings.headingStartValues || DEFAULT_HEADING_START_VALUES;
-    let previousLevel = settings.firstLevel - 1;
-    let numberingStack = [];
-    const changes = [];
-    for (const heading of headings) {
-      const level = heading.level;
-      const lineNum = heading.position.start.line;
-      const lineText = editor.getLine(lineNum);
-      if (isLineIgnored(lineNum, lineText, codeRanges))
-        continue;
-      if (settings.firstLevel > level) {
-        previousLevel = settings.firstLevel - 1;
-        numberingStack = [];
-        continue;
-      }
-      if (settings.skipHeadings && settings.skipHeadings.length > 0) {
-        if (heading.heading.endsWith(settings.skipHeadings))
-          continue;
-      }
-      if (level === previousLevel) {
-        const x = numberingStack.pop();
-        if (x)
-          numberingStack.push(nextNumberingToken(x));
-      } else if (level < previousLevel) {
-        for (let i = previousLevel; i > level; i--)
-          numberingStack.pop();
-        const x = numberingStack.pop();
-        if (x)
-          numberingStack.push(nextNumberingToken(x));
-      } else if (level > previousLevel) {
-        for (let i = previousLevel; i < level; i++) {
-          const styleIndex = Math.min(i, headingStyles.length - 1);
-          const startVal = headingStartValues[styleIndex] !== void 0 ? headingStartValues[styleIndex] : "1";
-          numberingStack.push(firstNumberingTokenInStyle(headingStyles[styleIndex], startVal));
-        }
-      }
-      previousLevel = level;
-      if (level > settings.maxLevel)
-        continue;
-      const prefixRange = findHeadingPrefixRange(editor, heading);
-      if (!prefixRange)
-        continue;
-      const headingHashString = makeHeadingHashString(editor, heading);
-      if (!headingHashString)
-        continue;
-      const prefixString = makeNumberingString(numberingStack, headingSeparators);
-      const separator = headingSeparators[0] || "";
-      replaceRangeEconomically(editor, changes, prefixRange, headingHashString + prefixString + separator + " ");
-    }
-    if (changes.length > 0) {
-      editor.transaction({ changes });
-      if (performRestore) {
-        restoreCursor(editor, cursorBefore);
-        editor.scrollTo(scrollBefore.left, scrollBefore.top);
-      }
-      return true;
-    }
-    return false;
-  }
-  removeNumbering() {
-    var _a;
-    const info = this.getActiveViewInfo();
-    if (!info)
-      return;
-    const { data, editor } = info;
-    const changes = [];
-    const headings = (_a = data.headings) != null ? _a : [];
-    if (headings.length === 0)
-      return;
-    for (const heading of headings) {
-      const prefixRange = findHeadingPrefixRange(editor, heading);
-      if (!prefixRange)
-        continue;
-      const headingHashString = makeHeadingHashString(editor, heading);
-      if (!headingHashString)
-        continue;
-      replaceRangeEconomically(editor, changes, prefixRange, headingHashString + " ");
-    }
-    if (changes.length > 0) {
-      editor.transaction({ changes });
-    }
-  }
-};
-
-// src/headings/settings-ui.ts
-var import_obsidian18 = require("obsidian");
-function renderHeadingsSettings(containerEl, manager) {
-  const settings = manager.plugin.settings.myHeadings;
-  const autoNumberingDetails = containerEl.createEl("details");
-  autoNumberingDetails.open = false;
-  autoNumberingDetails.style.marginBottom = "10px";
-  autoNumberingDetails.style.border = "1px solid var(--background-modifier-border)";
-  autoNumberingDetails.style.borderRadius = "5px";
-  autoNumberingDetails.style.padding = "0.5em";
-  const autoNumberingSummary = autoNumberingDetails.createEl("summary");
-  autoNumberingSummary.setText(t("Auto Numbering"));
-  autoNumberingSummary.style.fontWeight = "bold";
-  autoNumberingSummary.style.cursor = "pointer";
-  autoNumberingSummary.style.outline = "none";
-  const autoNumberingContent = autoNumberingDetails.createEl("div");
-  autoNumberingContent.style.marginTop = "10px";
-  autoNumberingContent.style.paddingLeft = "5px";
-  autoNumberingContent.style.borderLeft = "2px solid var(--background-modifier-border)";
-  new import_obsidian18.Setting(autoNumberingContent).setName(t("Auto Number Headings")).setDesc(t("Create numbers automatically on blur")).addToggle((toggle) => toggle.setValue(settings.auto).onChange(async (value) => {
-    settings.auto = value;
-    await manager.plugin.saveSettings();
-  }));
-  new import_obsidian18.Setting(autoNumberingContent).setName(t("First Level")).addSlider((slider) => slider.setLimits(1, 6, 1).setValue(settings.firstLevel).setDynamicTooltip().onChange(async (value) => {
-    settings.firstLevel = value;
-    await manager.plugin.saveSettings();
-  }));
-  new import_obsidian18.Setting(autoNumberingContent).setName(t("Max Level")).addSlider((slider) => slider.setLimits(1, 6, 1).setValue(settings.maxLevel).setDynamicTooltip().onChange(async (value) => {
-    settings.maxLevel = value;
-    await manager.plugin.saveSettings();
-  }));
-  autoNumberingContent.createEl("h3", { text: t("Heading Styles") });
-  const stylesContainer = autoNumberingContent.createEl("div");
-  stylesContainer.style.display = "grid";
-  stylesContainer.style.gridTemplateColumns = "0.5fr 1fr 1fr 1fr";
-  stylesContainer.style.gap = "10px";
-  stylesContainer.style.marginBottom = "20px";
-  stylesContainer.createEl("div", { text: t("Level"), style: "font-weight: bold;" });
-  stylesContainer.createEl("div", { text: t("Style"), style: "font-weight: bold;" });
-  stylesContainer.createEl("div", { text: t("Separator"), style: "font-weight: bold;" });
-  stylesContainer.createEl("div", { text: t("Start At"), style: "font-weight: bold;" });
-  const styleOptions = { "1": "1, 2, 3", "a": "a, b, c", "A": "A, B, C", "I": "I, II, III", "\u4E00": "\u4E00, \u4E8C, \u4E09", "\u2460": "\u2460, \u2461, \u2462" };
-  const separatorOptions = { "": "None", ".": ".", "-": "-", ":": ":", "\u2014": "\u2014" };
-  for (let i = 0; i < 6; i++) {
-    stylesContainer.createEl("div", { text: `H${i + 1}`, style: "align-self: center;" });
-    const styleSelect = stylesContainer.createEl("select");
-    Object.entries(styleOptions).forEach(([key, label]) => {
-      styleSelect.createEl("option", { value: key, text: label });
-    });
-    styleSelect.value = settings.headingStyles[i];
-    styleSelect.onchange = async () => {
-      settings.headingStyles[i] = styleSelect.value;
-      await manager.plugin.saveSettings();
-    };
-    const sepSelect = stylesContainer.createEl("select");
-    Object.entries(separatorOptions).forEach(([key, label]) => {
-      sepSelect.createEl("option", { value: key, text: label });
-    });
-    sepSelect.value = settings.headingSeparators[i];
-    sepSelect.onchange = async () => {
-      settings.headingSeparators[i] = sepSelect.value;
-      await manager.plugin.saveSettings();
-    };
-    const startInput = stylesContainer.createEl("input", { type: "text" });
-    startInput.style.width = "100%";
-    startInput.value = settings.headingStartValues[i];
-    startInput.onchange = async () => {
-      settings.headingStartValues[i] = startInput.value;
-      await manager.plugin.saveSettings();
-    };
-  }
-  containerEl.createEl("br");
-  const shifterDetails = containerEl.createEl("details");
-  shifterDetails.open = false;
-  shifterDetails.style.marginBottom = "10px";
-  shifterDetails.style.border = "1px solid var(--background-modifier-border)";
-  shifterDetails.style.borderRadius = "5px";
-  shifterDetails.style.padding = "0.5em";
-  const shifterSummary = shifterDetails.createEl("summary");
-  shifterSummary.setText(t("Heading Shifter"));
-  shifterSummary.style.fontWeight = "bold";
-  shifterSummary.style.cursor = "pointer";
-  shifterSummary.style.outline = "none";
-  const shifterContent = shifterDetails.createEl("div");
-  shifterContent.style.marginTop = "10px";
-  shifterContent.style.paddingLeft = "5px";
-  shifterContent.style.borderLeft = "2px solid var(--background-modifier-border)";
-  new import_obsidian18.Setting(shifterContent).setName(t("Lower limit of Heading")).setDesc(t("The lower Heading Size that will be decreased by the Heading Shift")).addDropdown((dropdown) => {
-    const headingOptions = {};
-    [0, 1, 2, 3, 4, 5, 6].forEach((h) => headingOptions[String(h)] = String(h));
-    dropdown.addOptions(headingOptions).setValue(String(settings.limitHeadingFrom)).onChange(async (value) => {
-      settings.limitHeadingFrom = Number(value);
-      await manager.plugin.saveSettings();
-    });
-  });
-  new import_obsidian18.Setting(shifterContent).setName(t("Enable override tab behavior")).setDesc(t('Tab execute "Increase Headings" and Shift-Tab execute "Decrease Headings"')).addToggle(
-    (toggle) => toggle.setValue(settings.overrideTab).onChange(async (value) => {
-      settings.overrideTab = value;
-      await manager.plugin.saveSettings();
-    })
-  );
-  shifterContent.createEl("h3", { text: t("Style to remove") });
-  shifterContent.createEl("p", { text: t("If this style is at the position of a line, remove it") });
-  shifterContent.createEl("b", { text: t("Beginning") });
-  new import_obsidian18.Setting(shifterContent).setName(t("Unordered list")).setDesc("-").addToggle(
-    (toggle) => {
-      var _a, _b;
-      return toggle.setValue((_b = (_a = settings.styleToRemove) == null ? void 0 : _a.beginning) == null ? void 0 : _b.ul).onChange(async (value) => {
-        settings.styleToRemove.beginning.ul = value;
-        await manager.plugin.saveSettings();
-      });
-    }
-  );
-  new import_obsidian18.Setting(shifterContent).setName(t("Ordered list")).setDesc("1., 2. ,3. ,...").addToggle(
-    (toggle) => {
-      var _a, _b;
-      return toggle.setValue((_b = (_a = settings.styleToRemove) == null ? void 0 : _a.beginning) == null ? void 0 : _b.ol).onChange(async (value) => {
-        settings.styleToRemove.beginning.ol = value;
-        await manager.plugin.saveSettings();
-      });
-    }
-  );
-  new import_obsidian18.Setting(shifterContent).setName(t("User defined")).setDesc(t("Arbitrary string (regular expression)")).addTextArea((str) => {
-    var _a, _b;
-    str.setValue((_b = (_a = settings.styleToRemove.beginning) == null ? void 0 : _a.userDefined) == null ? void 0 : _b.join("\n")).onChange(async (str2) => {
-      settings.styleToRemove.beginning.userDefined = str2.split("\n");
-      await manager.plugin.saveSettings();
-    });
-  });
-  shifterContent.createEl("b", { text: t("Surrounding") });
-  new import_obsidian18.Setting(shifterContent).setName(t("Bold")).setDesc("**|__").addToggle(
-    (toggle) => {
-      var _a, _b;
-      return toggle.setValue((_b = (_a = settings.styleToRemove) == null ? void 0 : _a.surrounding) == null ? void 0 : _b.bold).onChange(async (value) => {
-        settings.styleToRemove.surrounding.bold = value;
-        await manager.plugin.saveSettings();
-      });
-    }
-  );
-  new import_obsidian18.Setting(shifterContent).setName(t("Italic")).setDesc("*|_").addToggle(
-    (toggle) => {
-      var _a, _b;
-      return toggle.setValue((_b = (_a = settings.styleToRemove) == null ? void 0 : _a.surrounding) == null ? void 0 : _b.italic).onChange(async (value) => {
-        settings.styleToRemove.surrounding.italic = value;
-        await manager.plugin.saveSettings();
-      });
-    }
-  );
-  new import_obsidian18.Setting(shifterContent).setName(t("User defined")).setDesc(t("Arbitrary string (regular expression)")).addTextArea((str) => {
-    var _a, _b, _c;
-    str.setValue((_c = (_b = (_a = settings.styleToRemove) == null ? void 0 : _a.surrounding) == null ? void 0 : _b.userDefined) == null ? void 0 : _c.join("\n")).onChange(async (str2) => {
-      settings.styleToRemove.surrounding.userDefined = str2.split("\n");
-      await manager.plugin.saveSettings();
-    });
-  });
-  shifterContent.createEl("h3", { text: t("List") });
-  new import_obsidian18.Setting(shifterContent).setName(t("Children behavior")).addDropdown((dropdown) => {
-    dropdown.addOption("outdent to zero", t("Outdent to 0")).addOption("sync with headings", t("Sync with headings")).addOption("noting", t("Noting")).setValue(settings.list.childrenBehavior).onChange((v) => {
-      settings.list.childrenBehavior = v;
-      manager.plugin.saveSettings();
-    });
-  });
-  shifterContent.createEl("h3", { text: t("Editor") });
-  new import_obsidian18.Setting(shifterContent).setName(t("Tab size")).addSlider((cb) => {
-    cb.setDynamicTooltip().setLimits(2, 8, 2).setValue(settings.editor.tabSize).onChange((v) => {
-      settings.editor.tabSize = v;
-      manager.plugin.saveSettings();
-    });
-  });
-}
-
-// src/formulas/manager.ts
-var import_obsidian20 = require("obsidian");
-
-// src/formulas/modal.ts
-var import_obsidian19 = require("obsidian");
-var FormulasControlModal = class extends import_obsidian19.Modal {
-  constructor(app, plugin, file) {
-    super(app);
-    this.plugin = plugin;
-    this.file = file;
-    const cache = app.metadataCache.getFileCache(file);
-    const fm = cache ? cache.frontmatter : void 0;
-    this.settings = JSON.parse(JSON.stringify(parseFormulasFrontMatter(fm, this.plugin.settings.myFormulas)));
-  }
-  onOpen() {
-    this.display();
-  }
-  display() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: t("Configure Formulas") });
-    new import_obsidian19.Setting(contentEl).setName(t("Auto Number Formulas")).setDesc(t("Automatically number formulas on blur")).addToggle((toggle) => toggle.setValue(this.settings.auto).onChange((v) => this.settings.auto = v));
-    new import_obsidian19.Setting(contentEl).setName(t("Numbering Mode")).setDesc(t("Continuous: 1,2,3... | Heading-based: 1.1-1, 1.1-2...")).addDropdown((dropdown) => dropdown.addOption("continuous", t("Continuous")).addOption("heading-based", t("Heading-based")).setValue(this.settings.mode).onChange((v) => {
-      this.settings.mode = v;
-      this.display();
-    }));
-    if (this.settings.mode === "heading-based") {
-      new import_obsidian19.Setting(contentEl).setName(t("Max Heading Depth")).setDesc(t("Maximum heading level to use for formula numbering")).addSlider((slider) => slider.setLimits(1, 6, 1).setValue(this.settings.maxDepth).setDynamicTooltip().onChange((v) => this.settings.maxDepth = v));
-    }
-    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
-    new import_obsidian19.Setting(buttonContainer).addButton((btn) => btn.setButtonText(t("Apply Now")).setTooltip(t("Apply numbering once without saving to frontmatter")).onClick(() => {
-      this.applyNumbering();
-      this.close();
-    })).addButton((btn) => btn.setButtonText(t("Save to Frontmatter")).setTooltip(t("Save settings to frontmatter and apply")).setCta().onClick(async () => {
-      await this.saveAndApply();
-      this.close();
-    })).addButton((btn) => btn.setButtonText(t("Remove Numbering")).setWarning().onClick(() => {
-      this.plugin.formulasManager.removeNumbering();
-      new import_obsidian19.Notice(t("Formula numbering removed"));
-      this.close();
-    }));
-  }
-  applyNumbering() {
-    const info = this.plugin.formulasManager.getActiveViewInfo();
-    if (!info)
-      return;
-    const originalSettings = this.plugin.settings.myFormulas;
-    this.plugin.settings.myFormulas = this.settings;
-    this.plugin.formulasManager.updateNumbering(true, true);
-    this.plugin.settings.myFormulas = originalSettings;
-    new import_obsidian19.Notice(t("Formula numbering applied (one-time)"));
-  }
-  async saveAndApply() {
-    await saveSettingsToFrontMatter(this.app, this.file, void 0, this.settings);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    this.plugin.formulasManager.updateNumbering(true, true);
-    new import_obsidian19.Notice(t("Settings saved to frontmatter and applied"));
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-
-// src/formulas/manager.ts
-var TAG_REGEX = /\\tag\{([^}]*)\}/;
-var TAG_REMOVE_REGEX = /\s*\\tag\{[^}]*\}/;
-var HEADING_NUMBER_REGEX = /^\s{0,4}#+\s*([0-9a-zA-Z\u4e00-\u9fa5\u2460-\u2473&⓪].*?)(\s|$)/;
-var FormulasManager = class {
-  constructor(app, plugin) {
-    this.isLoaded = false;
-    this.app = app;
-    this.plugin = plugin;
-  }
-  async onload() {
-    if (this.isLoaded)
-      return;
-    this.isLoaded = true;
-  }
-  openControlModal() {
-    if (!this.isLoaded)
-      return;
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian20.MarkdownView);
-    if (activeView && activeView.file) {
-      new FormulasControlModal(this.app, this.plugin, activeView.file).open();
-    }
-  }
-  onunload() {
-    if (!this.isLoaded)
-      return;
-    this.isLoaded = false;
-  }
-  getActiveViewInfo() {
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian20.MarkdownView);
-    if (activeView && activeView.file) {
-      const data = this.app.metadataCache.getFileCache(activeView.file);
-      const editor = activeView.editor;
-      if (data && editor) {
-        return { activeView, data, editor };
-      }
-    }
-    return void 0;
-  }
-  getEffectiveSettings(fm) {
-    return parseFormulasFrontMatter(fm, this.plugin.settings.myFormulas);
-  }
-  updateNumbering(force = false, performRestore = true) {
-    const info = this.getActiveViewInfo();
-    if (!info)
-      return false;
-    const { data, editor } = info;
-    const settings = this.getEffectiveSettings(data.frontmatter);
-    if (!settings.enabled && !force)
-      return false;
-    const cursorBefore = editor.getCursor();
-    const scrollBefore = editor.getScrollInfo();
-    const lineCount = editor.lineCount();
-    const codeRanges = getCodeBlockRanges(data);
-    const changes = [];
-    let equationCounter = 1;
-    const headingFormulaCounters = {};
-    const dollarPositions = [];
-    for (let i = 0; i < lineCount; i++) {
-      const line = editor.getLine(i);
-      if (isLineIgnored(i, line, codeRanges))
-        continue;
-      let pos = -1;
-      while ((pos = line.indexOf("$$", pos + 1)) !== -1) {
-        dollarPositions.push({ line: i, ch: pos });
-      }
-    }
-    if (dollarPositions.length === 0)
-      return false;
-    for (let i = 0; i < dollarPositions.length - 1; i += 2) {
-      const start = dollarPositions[i];
-      const end = dollarPositions[i + 1];
-      if (start.line > end.line || start.line === end.line && start.ch >= end.ch)
-        continue;
-      let formulaContent = "";
-      if (start.line === end.line) {
-        const line = editor.getLine(start.line);
-        formulaContent = line.substring(start.ch, end.ch + 2);
-      } else {
-        const startLine = editor.getLine(start.line);
-        formulaContent += startLine.substring(start.ch) + "\n";
-        for (let lineNum = start.line + 1; lineNum < end.line; lineNum++) {
-          formulaContent += editor.getLine(lineNum) + "\n";
-        }
-        const endLine = editor.getLine(end.line);
-        formulaContent += endLine.substring(0, end.ch + 2);
-      }
-      const tagRegex = TAG_REGEX;
-      const hasTag = formulaContent.match(tagRegex);
-      let equationNumber = "";
-      if (settings.mode === "heading-based") {
-        let currentHeadingNumber = "";
-        const headings = data.headings || [];
-        const maxDepth = settings.maxDepth || 4;
-        let searchIndex = -1;
-        for (let j = headings.length - 1; j >= 0; j--) {
-          if (headings[j].position.start.line <= start.line) {
-            searchIndex = j;
-            break;
-          }
-        }
-        let targetHeading = null;
-        if (searchIndex !== -1) {
-          for (let k = searchIndex; k >= 0; k--) {
-            if (headings[k].level <= maxDepth) {
-              targetHeading = headings[k];
-              break;
-            }
-          }
-        }
-        if (targetHeading) {
-          const headingLine = editor.getLine(targetHeading.position.start.line);
-          const numberExtractRegex = HEADING_NUMBER_REGEX;
-          const match = headingLine.match(numberExtractRegex);
-          if (match && match[1]) {
-            currentHeadingNumber = match[1].trim();
-            if ([".", ":", "\u2014", "-"].some((c) => currentHeadingNumber.endsWith(c))) {
-              currentHeadingNumber = currentHeadingNumber.slice(0, -1);
-            }
-          }
-        }
-        if (currentHeadingNumber) {
-          if (!headingFormulaCounters[currentHeadingNumber])
-            headingFormulaCounters[currentHeadingNumber] = 1;
-          equationNumber = `${currentHeadingNumber}-${headingFormulaCounters[currentHeadingNumber]}`;
-          headingFormulaCounters[currentHeadingNumber]++;
-        } else {
-          equationNumber = `${equationCounter}`;
-          equationCounter++;
-        }
-      } else {
-        equationNumber = `${equationCounter}`;
-        equationCounter++;
-      }
-      if (!hasTag) {
-        const endLine = editor.getLine(end.line);
-        const beforeDollars = endLine.substring(0, end.ch);
-        const afterDollars = endLine.substring(end.ch);
-        const newLine = beforeDollars + ` \\tag{${equationNumber}}` + afterDollars;
-        changes.push({
-          from: { line: end.line, ch: 0 },
-          to: { line: end.line, ch: endLine.length },
-          text: newLine
-        });
-      } else {
-        const updatedContent = formulaContent.replace(tagRegex, `\\tag{${equationNumber}}`);
-        if (updatedContent !== formulaContent) {
-          if (start.line === end.line) {
-            const line = editor.getLine(start.line);
-            changes.push({
-              from: { line: start.line, ch: 0 },
-              to: { line: start.line, ch: line.length },
-              text: line.substring(0, start.ch) + updatedContent + line.substring(end.ch + 2)
-            });
-          } else {
-            changes.push({
-              from: { line: start.line, ch: start.ch },
-              to: { line: end.line, ch: end.ch + 2 },
-              text: updatedContent
-            });
-          }
-        }
-      }
-    }
-    if (changes.length > 0) {
-      editor.transaction({ changes });
-      if (performRestore) {
-        restoreCursor(editor, cursorBefore);
-        editor.scrollTo(scrollBefore.left, scrollBefore.top);
-      }
-      return true;
-    }
-    return false;
-  }
-  removeNumbering() {
-    const info = this.getActiveViewInfo();
-    if (!info)
-      return;
-    const { editor } = info;
-    const changes = [];
-    const lineCount = editor.lineCount();
-    const tagRegex = TAG_REMOVE_REGEX;
-    const dollarPositions = [];
-    for (let i = 0; i < lineCount; i++) {
-      const line = editor.getLine(i);
-      let pos = -1;
-      while ((pos = line.indexOf("$$", pos + 1)) !== -1) {
-        dollarPositions.push({ line: i, ch: pos });
-      }
-    }
-    if (dollarPositions.length === 0)
-      return;
-    for (let i = 0; i < dollarPositions.length - 1; i += 2) {
-      const start = dollarPositions[i];
-      const end = dollarPositions[i + 1];
-      if (start.line === end.line) {
-        const line = editor.getLine(start.line);
-        const content = line.substring(start.ch + 2, end.ch);
-        if (tagRegex.test(content)) {
-          const newContent = content.replace(tagRegex, "");
-          changes.push({
-            from: { line: start.line, ch: start.ch + 2 },
-            to: { line: end.line, ch: end.ch },
-            text: newContent
-          });
-        }
-      } else {
-        for (let j = start.line; j <= end.line; j++) {
-          const line = editor.getLine(j);
-          let s = 0, e = line.length;
-          if (j === start.line)
-            s = start.ch + 2;
-          if (j === end.line)
-            e = end.ch;
-          const c = line.substring(s, e);
-          if (tagRegex.test(c)) {
-            const n = c.replace(tagRegex, "");
-            changes.push({
-              from: { line: j, ch: s },
-              to: { line: j, ch: e },
-              text: n
-            });
-          }
-        }
-      }
-    }
-    if (changes.length > 0) {
-      editor.transaction({ changes });
-    }
-  }
-};
-
-// src/formulas/settings-ui.ts
-var import_obsidian21 = require("obsidian");
-function renderFormulasSettings(containerEl, manager) {
-  const settings = manager.plugin.settings.myFormulas;
-  new import_obsidian21.Setting(containerEl).setName(t("Auto Number Formulas")).setDesc(t("Automatically number formulas (triggers on blur if enabled)")).addToggle((toggle) => toggle.setValue(settings.auto).onChange(async (value) => {
-    settings.auto = value;
-    await manager.plugin.saveSettings();
-  }));
-  new import_obsidian21.Setting(containerEl).setName(t("Numbering Mode")).setDesc(t("Continuous (1, 2, 3) or Heading-based (1.1-1, 1.1-2)")).addDropdown((dropdown) => dropdown.addOption("continuous", t("Continuous")).addOption("heading-based", t("Heading-based")).setValue(settings.mode).onChange(async (value) => {
-    settings.mode = value;
-    await manager.plugin.saveSettings();
-    const nextSetting = containerEl.lastElementChild;
-  }));
-  const depthSetting = new import_obsidian21.Setting(containerEl).setName(t("Max Heading Depth")).setDesc(t("For Heading-based mode: max depth of heading to use as prefix (e.g. 4 means use H4 at most)")).addSlider((slider) => slider.setLimits(1, 6, 1).setValue(settings.maxDepth).setDynamicTooltip().onChange(async (value) => {
-    settings.maxDepth = value;
-    await manager.plugin.saveSettings();
-  }));
-  const updateVisibility = () => {
-    if (settings.mode === "heading-based") {
-      depthSetting.settingEl.style.display = "";
-    } else {
-      depthSetting.settingEl.style.display = "none";
-    }
-  };
-  updateVisibility();
-  const modeSetting = containerEl.children[containerEl.children.length - 2];
-}
-
 // src/sidebar/features/auto-hide.ts
 var SidebarSideController = class {
   constructor(side, app, plugin, split, onExpand, onCollapse) {
@@ -4286,7 +2376,7 @@ var RibbonFeature = class {
 };
 
 // src/sidebar/features/tabs.ts
-var import_obsidian22 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 var SidebarTabsFeature = class {
   constructor(app, plugin) {
     this.scanTimer = null;
@@ -4430,7 +2520,7 @@ var SidebarTabsFeature = class {
           return true;
         });
         if (settings.bindings.length < initialLength) {
-          new import_obsidian22.Notice(t("Binding Removed"));
+          new import_obsidian12.Notice(t("Binding Removed"));
         }
       }
       await this.plugin.saveSettings();
@@ -4446,13 +2536,16 @@ var SidebarTabsFeature = class {
 };
 
 // src/sidebar/features/contextual-split.ts
-var import_obsidian23 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 var ContextualSplitFeature = class {
   constructor(app, plugin) {
-    // Store original visual states of master tabs: { viewType: { icon: string, title: string } }
+    // Store original visual states of master tabs: { "side-viewType": { icon: string, title: string } }
+    // Key format: "left-viewType" or "right-viewType" to support same viewType on both sidebars
     this.originalStates = /* @__PURE__ */ new Map();
-    this.activeBinding = null;
+    // Support independent active splits for left and right sidebars
+    this.activeBindings = /* @__PURE__ */ new Map();
     this.listeners = [];
+    this.observer = null;
     this.app = app;
     this.plugin = plugin;
   }
@@ -4460,8 +2553,20 @@ var ContextualSplitFeature = class {
     if (this.listeners.length > 0) {
       this.onunload();
     }
+    this.observer = new MutationObserver((0, import_obsidian13.debounce)(() => {
+      this.applyAllMasquerades();
+    }, 50));
     const runInit = () => {
+      var _a, _b;
       this.cleanOrphans();
+      const leftSplit = this.app.workspace.leftSplit;
+      const rightSplit = this.app.workspace.rightSplit;
+      if (leftSplit && leftSplit.containerEl) {
+        (_a = this.observer) == null ? void 0 : _a.observe(leftSplit.containerEl, { childList: true, subtree: true });
+      }
+      if (rightSplit && rightSplit.containerEl) {
+        (_b = this.observer) == null ? void 0 : _b.observe(rightSplit.containerEl, { childList: true, subtree: true });
+      }
       this.applyAllMasquerades();
     };
     if (this.app.workspace.layoutReady) {
@@ -4472,18 +2577,18 @@ var ContextualSplitFeature = class {
       });
     }
     this.listeners.push(
-      this.app.workspace.on("layout-change", (0, import_obsidian23.debounce)(() => {
+      this.app.workspace.on("layout-change", (0, import_obsidian13.debounce)(() => {
         this.applyAllMasquerades();
         this.checkActiveBindingValidity();
       }, 200))
     );
     this.listeners.push(
-      this.app.workspace.on("resize", (0, import_obsidian23.debounce)(() => {
+      this.app.workspace.on("resize", (0, import_obsidian13.debounce)(() => {
         this.saveSplitState();
       }, 500))
     );
     this.listeners.push(
-      this.app.workspace.on("active-leaf-change", (0, import_obsidian23.debounce)((leaf) => {
+      this.app.workspace.on("active-leaf-change", (0, import_obsidian13.debounce)((leaf) => {
         if (leaf)
           this.handleActiveLeaf(leaf);
       }, 50, true))
@@ -4492,9 +2597,14 @@ var ContextualSplitFeature = class {
   onunload() {
     this.listeners.forEach((ref) => this.app.workspace.offref(ref));
     this.listeners = [];
-    if (this.activeBinding) {
-      this.cleanupSplit(this.activeBinding);
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
     }
+    this.activeBindings.forEach((binding) => {
+      this.cleanupSplit(binding);
+    });
+    this.activeBindings.clear();
     const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
     bindings.forEach((b) => {
       const masterLeaves = this.findLeavesByType(b.masterId);
@@ -4523,6 +2633,29 @@ var ContextualSplitFeature = class {
       masterLeaves.forEach((leaf) => this.applyVisualOverride(leaf, b));
     });
   }
+  /**
+   * Get a unique state key for a leaf that includes its sidebar side
+   * This prevents conflicts when the same viewType exists on both sidebars
+   */
+  getStateKey(leaf) {
+    const viewType = leaf.view.getViewType();
+    const side = this.getLeafSide(leaf);
+    return `${side}-${viewType}`;
+  }
+  /**
+   * Determine which sidebar a leaf belongs to using DOM traversal
+   */
+  getLeafSide(leaf) {
+    var _a;
+    const container = (_a = leaf.view) == null ? void 0 : _a.containerEl;
+    if (!container)
+      return "unknown";
+    if (container.closest(".mod-left-split"))
+      return "left";
+    if (container.closest(".mod-right-split"))
+      return "right";
+    return "unknown";
+  }
   async handleActiveLeaf(leaf) {
     var _a;
     if (!((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled))
@@ -4530,71 +2663,88 @@ var ContextualSplitFeature = class {
     const viewType = leaf.view.getViewType();
     const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
     const matchingBinding = bindings.find((b) => b.masterId === viewType);
+    const side = this.getLeafSide(leaf);
+    if (side === "unknown")
+      return;
+    const currentActive = this.activeBindings.get(side);
     if (matchingBinding) {
-      if (this.activeBinding && this.activeBinding !== matchingBinding) {
-        await this.cleanupSplit(this.activeBinding);
+      if (currentActive && currentActive !== matchingBinding) {
+        await this.cleanupSplit(currentActive);
       }
-      this.activeBinding = matchingBinding;
+      this.activeBindings.set(side, matchingBinding);
       await this.activateSplit(leaf, matchingBinding);
     } else {
-      if (this.activeBinding) {
-        if (viewType === this.activeBinding.slaveId) {
+      if (currentActive) {
+        if (viewType === currentActive.slaveId) {
           if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
             return;
           }
         }
-        if (this.isMasterVisible(this.activeBinding.masterId)) {
+        if (this.isMasterVisible(currentActive.masterId, side)) {
           return;
         }
-        await this.cleanupSplit(this.activeBinding);
-        this.activeBinding = null;
+        await this.cleanupSplit(currentActive);
+        this.activeBindings.delete(side);
       }
     }
   }
   checkActiveBindingValidity() {
     const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
-    for (const binding of bindings) {
-      if (this.isMasterVisible(binding.masterId)) {
-        if (this.activeBinding !== binding) {
-          if (this.activeBinding)
-            this.cleanupSplit(this.activeBinding);
-          this.activeBinding = binding;
-          const leaves = this.findLeavesByType(binding.masterId);
-          const visibleLeaf = leaves.find((l) => l.view.containerEl.isShown());
-          if (visibleLeaf)
-            this.activateSplit(visibleLeaf, binding);
+    const sides = ["left", "right"];
+    sides.forEach((side) => {
+      const currentActive = this.activeBindings.get(side);
+      for (const binding of bindings) {
+        if (this.isMasterVisible(binding.masterId, side)) {
+          if (currentActive !== binding) {
+            if (currentActive)
+              this.cleanupSplit(currentActive);
+            this.activeBindings.set(side, binding);
+            const leaves = this.findLeavesByType(binding.masterId);
+            const sideLeaf = leaves.find((l) => this.getLeafSide(l) === side && l.view.containerEl.isShown());
+            if (sideLeaf)
+              this.activateSplit(sideLeaf, binding);
+          }
+          return;
         }
-        return;
       }
-    }
-    if (this.activeBinding) {
-      this.cleanupSplit(this.activeBinding);
-      this.activeBinding = null;
-    }
+      if (currentActive) {
+        this.cleanupSplit(currentActive);
+        this.activeBindings.delete(side);
+      }
+    });
   }
-  isMasterVisible(masterId) {
+  isMasterVisible(masterId, side) {
     const leaves = this.findLeavesByType(masterId);
-    return leaves.some((l) => l.view.containerEl.isShown());
+    return leaves.some((l) => {
+      if (!l.view.containerEl.isShown())
+        return false;
+      if (side && this.getLeafSide(l) !== side)
+        return false;
+      return true;
+    });
   }
   saveSplitState() {
-    if (!this.activeBinding)
-      return;
-    const slaveLeaf = this.findUniqueSlaveLeaf(this.activeBinding.slaveId);
-    if (slaveLeaf) {
-      const parent = slaveLeaf.parent;
-      if (parent && typeof parent.dimension === "number") {
-        let dim = parent.dimension;
-        dim = Math.round(dim);
-        if (dim < 10)
-          dim = 10;
-        if (dim > 90)
-          dim = 90;
-        if (this.activeBinding.splitRatio !== dim) {
-          this.activeBinding.splitRatio = dim;
-          this.plugin.saveSettings();
+    this.activeBindings.forEach((binding, side) => {
+      const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
+      if (slaveLeaf) {
+        const slaveSide = this.getLeafSide(slaveLeaf);
+        if (slaveSide !== side)
+          return;
+        const parent = slaveLeaf.parent;
+        if (parent && typeof parent.dimension === "number") {
+          let dim = parent.dimension;
+          dim = Math.round(dim);
+          if (dim < 10)
+            dim = 10;
+          if (dim > 90)
+            dim = 90;
+          if (binding.splitRatio !== dim) {
+            binding.splitRatio = dim;
+            this.plugin.saveSettings();
+          }
         }
       }
-    }
+    });
   }
   async activateSplit(masterLeaf, binding) {
     let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
@@ -4676,10 +2826,11 @@ var ContextualSplitFeature = class {
     if (!binding.groupName && !binding.groupSvg)
       return;
     const viewType = leaf.view.getViewType();
-    if (!this.originalStates.has(viewType)) {
+    const stateKey = this.getStateKey(leaf);
+    if (!this.originalStates.has(stateKey)) {
       const icon = leaf.view.icon;
       const title = leaf.view.getDisplayText();
-      this.originalStates.set(viewType, { icon, title });
+      this.originalStates.set(stateKey, { icon, title });
     }
     const workspaceTabs = leaf.parent;
     if (workspaceTabs && workspaceTabs.tabHeaderContainerEl) {
@@ -4702,7 +2853,7 @@ var ContextualSplitFeature = class {
             } else {
               if (!val.includes("<") && !val.includes(">")) {
                 iconEl.empty();
-                (0, import_obsidian23.setIcon)(iconEl, val);
+                (0, import_obsidian13.setIcon)(iconEl, val);
               }
             }
           }
@@ -4712,7 +2863,8 @@ var ContextualSplitFeature = class {
     }
   }
   restoreVisuals(leaf, viewType) {
-    const original = this.originalStates.get(viewType);
+    const stateKey = this.getStateKey(leaf);
+    const original = this.originalStates.get(stateKey);
     if (!original)
       return;
     const workspaceTabs = leaf.parent;
@@ -4727,12 +2879,12 @@ var ContextualSplitFeature = class {
         const iconEl = header.querySelector(".workspace-tab-header-inner-icon");
         if (iconEl) {
           iconEl.empty();
-          (0, import_obsidian23.setIcon)(iconEl, original.icon);
+          (0, import_obsidian13.setIcon)(iconEl, original.icon);
         }
         header.removeClass("assistant-contextual-group-tab");
       }
     }
-    this.originalStates.delete(viewType);
+    this.originalStates.delete(stateKey);
   }
 };
 
@@ -4766,11 +2918,11 @@ var SidebarManager = class {
 };
 
 // src/sidebar/settings-ui.ts
-var import_obsidian25 = require("obsidian");
+var import_obsidian15 = require("obsidian");
 
 // src/sidebar/group-modal.ts
-var import_obsidian24 = require("obsidian");
-var GroupModal = class extends import_obsidian24.Modal {
+var import_obsidian14 = require("obsidian");
+var GroupModal = class extends import_obsidian14.Modal {
   constructor(app, manager, onSubmit) {
     super(app);
     this.masterId = "";
@@ -4784,11 +2936,11 @@ var GroupModal = class extends import_obsidian24.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h2", { text: t("Add New Group") });
-    new import_obsidian24.Setting(contentEl).setName(t("Master View ID")).setDesc(t("The view ID of the main tab (will be replaced by the group tab)")).addText((text) => text.onChange((value) => this.masterId = value));
-    new import_obsidian24.Setting(contentEl).setName(t("Slave View ID")).setDesc(t("The view ID of the split tab (hidden until group is active)")).addText((text) => text.onChange((value) => this.slaveId = value));
-    new import_obsidian24.Setting(contentEl).setName(t("Group Name")).setDesc(t("Name to display on the tab")).addText((text) => text.onChange((value) => this.groupName = value));
-    new import_obsidian24.Setting(contentEl).setName(t("Group Icon")).setDesc(t("SVG Code or Lucide Icon Name")).addTextArea((text) => text.setPlaceholder('<svg...> or "star"').onChange((value) => this.groupSvg = value));
-    new import_obsidian24.Setting(contentEl).addButton((btn) => btn.setButtonText(t("Add Group")).setCta().onClick(async () => {
+    new import_obsidian14.Setting(contentEl).setName(t("Master View ID")).setDesc(t("The view ID of the main tab (will be replaced by the group tab)")).addText((text) => text.onChange((value) => this.masterId = value));
+    new import_obsidian14.Setting(contentEl).setName(t("Slave View ID")).setDesc(t("The view ID of the split tab (hidden until group is active)")).addText((text) => text.onChange((value) => this.slaveId = value));
+    new import_obsidian14.Setting(contentEl).setName(t("Group Name")).setDesc(t("Name to display on the tab")).addText((text) => text.onChange((value) => this.groupName = value));
+    new import_obsidian14.Setting(contentEl).setName(t("Group Icon")).setDesc(t("SVG Code or Lucide Icon Name")).addTextArea((text) => text.setPlaceholder('<svg...> or "star"').onChange((value) => this.groupSvg = value));
+    new import_obsidian14.Setting(contentEl).addButton((btn) => btn.setButtonText(t("Add Group")).setCta().onClick(async () => {
       if (await this.createGroup()) {
         this.close();
         this.onSubmit();
@@ -4802,23 +2954,23 @@ var GroupModal = class extends import_obsidian24.Modal {
   async createGroup() {
     const settings = this.manager.plugin.settings.mySideBar.tabs;
     if (!this.masterId || !this.slaveId) {
-      new import_obsidian24.Notice(t("Error: Invalid ID"));
+      new import_obsidian14.Notice(t("Error: Invalid ID"));
       return false;
     }
     const masterParams = settings.elements[this.masterId];
     const slaveParams = settings.elements[this.slaveId];
     if (!masterParams || !slaveParams) {
-      new import_obsidian24.Notice(t("Error: Invalid ID"));
+      new import_obsidian14.Notice(t("Error: Invalid ID"));
       return false;
     }
     if (masterParams.side !== slaveParams.side) {
-      new import_obsidian24.Notice(t("Error: Same Side"));
+      new import_obsidian14.Notice(t("Error: Same Side"));
       return false;
     }
     if (!settings.bindings)
       settings.bindings = [];
     if (settings.bindings.some((b) => b.masterId === this.masterId)) {
-      new import_obsidian24.Notice(t("Error: Master ID already bound"));
+      new import_obsidian14.Notice(t("Error: Master ID already bound"));
       return false;
     }
     const newBinding = {
@@ -4914,7 +3066,7 @@ function createToggledSubSection(containerEl, title, isEnabled, onToggle, render
   titleEl.innerText = title;
   const toggleContainer = summary.createEl("span");
   toggleContainer.addEventListener("click", (e) => e.stopPropagation());
-  new import_obsidian25.ToggleComponent(toggleContainer).setValue(isEnabled).onChange((value) => {
+  new import_obsidian15.ToggleComponent(toggleContainer).setValue(isEnabled).onChange((value) => {
     onToggle(value);
   });
   const content = details.createEl("div");
@@ -4930,69 +3082,69 @@ function createToggledSubSection(containerEl, title, isEnabled, onToggle, render
 function renderAutoHideSettings(containerEl, manager) {
   const plugin = manager.plugin;
   const settings = plugin.settings.mySideBar.autoHide;
-  new import_obsidian25.Setting(containerEl).setName(t("Left sidebar hover")).setDesc(t("Enables the expansion and collapsing of the left sidebar on hover.")).addToggle((t2) => t2.setValue(settings.leftSidebar).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Left sidebar hover")).setDesc(t("Enables the expansion and collapsing of the left sidebar on hover.")).addToggle((t2) => t2.setValue(settings.leftSidebar).onChange(async (v) => {
     settings.leftSidebar = v;
     await plugin.saveSettings();
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Right sidebar hover")).setDesc(t("Enables the expansion and collapsing of the right sidebar on hover. Only collapses the right panel unless you have a right ribbon.")).addToggle((t2) => t2.setValue(settings.rightSidebar).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Right sidebar hover")).setDesc(t("Enables the expansion and collapsing of the right sidebar on hover. Only collapses the right panel unless you have a right ribbon.")).addToggle((t2) => t2.setValue(settings.rightSidebar).onChange(async (v) => {
     settings.rightSidebar = v;
     await plugin.saveSettings();
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Sync left and right")).setDesc(t("If enabled, hovering over the right sidebar will also expand the left sidebar at the same time, and vice versa. (Left and Right sidebar must both be enabled above)")).addToggle((t2) => t2.setValue(settings.syncLeftRight).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Sync left and right")).setDesc(t("If enabled, hovering over the right sidebar will also expand the left sidebar at the same time, and vice versa. (Left and Right sidebar must both be enabled above)")).addToggle((t2) => t2.setValue(settings.syncLeftRight).onChange(async (v) => {
     settings.syncLeftRight = v;
     await plugin.saveSettings();
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Overlay mode")).setDesc(t("When enabled, sidebars will slide over the main content without affecting the layout. When disabled, sidebars will expand by pushing content.")).addToggle((t2) => t2.setValue(settings.overlayMode).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Overlay mode")).setDesc(t("When enabled, sidebars will slide over the main content without affecting the layout. When disabled, sidebars will expand by pushing content.")).addToggle((t2) => t2.setValue(settings.overlayMode).onChange(async (v) => {
     settings.overlayMode = v;
     document.body.toggleClass("obsidian-assistant-overlay-mode", v);
     await plugin.saveSettings();
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Behavior")).setHeading();
-  new import_obsidian25.Setting(containerEl).setName(t("Left sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the left edge of the editor that will trigger the left sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.leftSideBarPixelTrigger)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Behavior")).setHeading();
+  new import_obsidian15.Setting(containerEl).setName(t("Left sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the left edge of the editor that will trigger the left sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.leftSideBarPixelTrigger)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.leftSideBarPixelTrigger = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Right sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the right edge of the editor that will trigger the right sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.rightSideBarPixelTrigger)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Right sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the right edge of the editor that will trigger the right sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.rightSideBarPixelTrigger)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.rightSideBarPixelTrigger = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Timing")).setHeading();
-  new import_obsidian25.Setting(containerEl).setName(t("Sidebar collapse delay")).setDesc(t("The delay in milliseconds before the sidebar collapses after the mouse has left. Enter '0' to disable delay.")).addText((text) => text.setValue(String(settings.sidebarDelay)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Timing")).setHeading();
+  new import_obsidian15.Setting(containerEl).setName(t("Sidebar collapse delay")).setDesc(t("The delay in milliseconds before the sidebar collapses after the mouse has left. Enter '0' to disable delay.")).addText((text) => text.setValue(String(settings.sidebarDelay)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num >= 0) {
       settings.sidebarDelay = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Sidebar expand delay")).setDesc(t("The delay in milliseconds before the sidebar expands after hovering. Default is 200ms.")).addText((text) => text.setValue(String(settings.sidebarExpandDelay)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Sidebar expand delay")).setDesc(t("The delay in milliseconds before the sidebar expands after hovering. Default is 200ms.")).addText((text) => text.setValue(String(settings.sidebarExpandDelay)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num >= 0) {
       settings.sidebarExpandDelay = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Expand/collapse animation speed")).setDesc(t("The speed of the sidebar expand/collapse animation in milliseconds.")).addText((text) => text.setValue(String(settings.expandCollapseSpeed)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Expand/collapse animation speed")).setDesc(t("The speed of the sidebar expand/collapse animation in milliseconds.")).addText((text) => text.setValue(String(settings.expandCollapseSpeed)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.expandCollapseSpeed = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Appearance")).setHeading();
-  new import_obsidian25.Setting(containerEl).setName(t("Left sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the left sidebar when expanded")).addText((text) => text.setValue(String(settings.leftSidebarMaxWidth)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Appearance")).setHeading();
+  new import_obsidian15.Setting(containerEl).setName(t("Left sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the left sidebar when expanded")).addText((text) => text.setValue(String(settings.leftSidebarMaxWidth)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.leftSidebarMaxWidth = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Right sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the right sidebar when expanded")).addText((text) => text.setValue(String(settings.rightSidebarMaxWidth)).onChange(async (v) => {
+  new import_obsidian15.Setting(containerEl).setName(t("Right sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the right sidebar when expanded")).addText((text) => text.setValue(String(settings.rightSidebarMaxWidth)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.rightSidebarMaxWidth = num;
@@ -5005,7 +3157,7 @@ function renderRibbonSettings(containerEl, manager) {
   const plugin = manager.plugin;
   const settings = plugin.settings.mySideBar.ribbon;
   manager.ribbonFeature.processRibbon().then(() => {
-    new import_obsidian25.Setting(containerEl).setName(t("Startup Display Delay")).setDesc(t("Delay in milliseconds before showing ribbon icons on startup. If 'My Plugins' is enabled, this acts as a buffer time added to the max plugin load delay.")).addText((text) => text.setPlaceholder("1000").setValue(String(settings.ribbonDisplayDelay)).onChange(async (value) => {
+    new import_obsidian15.Setting(containerEl).setName(t("Startup Display Delay")).setDesc(t("Delay in milliseconds before showing ribbon icons on startup. If 'My Plugins' is enabled, this acts as a buffer time added to the max plugin load delay.")).addText((text) => text.setPlaceholder("1000").setValue(String(settings.ribbonDisplayDelay)).onChange(async (value) => {
       const num = parseInt(value);
       if (!isNaN(num) && num >= 0) {
         settings.ribbonDisplayDelay = num;
@@ -5054,15 +3206,15 @@ function renderRibbonRow(container, el, manager, allElements) {
   nameContainer.createEl("span", { text: el.name || el.id });
   const visBtn = rowEntry.createEl("span", { cls: "statusbar-organizer-row-visibility" });
   visBtn.style.cursor = "pointer";
-  (0, import_obsidian25.setIcon)(visBtn, el.visible ? "eye" : "eye-off");
+  (0, import_obsidian15.setIcon)(visBtn, el.visible ? "eye" : "eye-off");
   visBtn.addEventListener("click", async () => {
     await manager.ribbonFeature.toggleVisibility(el.id);
     if (manager.plugin.settings.mySideBar.ribbon.elements[el.id].visible) {
       rowEntry.removeClass("statusbar-organizer-row-hidden");
-      (0, import_obsidian25.setIcon)(visBtn, "eye");
+      (0, import_obsidian15.setIcon)(visBtn, "eye");
     } else {
       rowEntry.addClass("statusbar-organizer-row-hidden");
-      (0, import_obsidian25.setIcon)(visBtn, "eye-off");
+      (0, import_obsidian15.setIcon)(visBtn, "eye-off");
     }
   });
 }
@@ -5107,11 +3259,11 @@ function handleRibbonDrag(e, row, el, manager, container, allElements) {
 function renderSidebarTabsSettings(containerEl, manager) {
   containerEl.empty();
   const settings = manager.plugin.settings.mySideBar.tabs;
-  new import_obsidian25.Setting(containerEl).setName(t("Scan Current Layout")).setDesc(t("Scan and apply")).addButton((btn) => btn.setButtonText(t("Scan")).onClick(async () => {
+  new import_obsidian15.Setting(containerEl).setName(t("Scan Current Layout")).setDesc(t("Scan and apply")).addButton((btn) => btn.setButtonText(t("Scan")).onClick(async () => {
     await manager.tabsFeature.scanAndApply();
     renderSidebarTabsSettings(containerEl, manager);
   }));
-  new import_obsidian25.Setting(containerEl).setName(t("Add New Group")).setDesc(t("Create a new contextual group binding")).addButton((btn) => btn.setButtonText(t("Add Group")).onClick(() => {
+  new import_obsidian15.Setting(containerEl).setName(t("Add New Group")).setDesc(t("Create a new contextual group binding")).addButton((btn) => btn.setButtonText(t("Add Group")).onClick(() => {
     new GroupModal(manager.app, manager, () => renderSidebarTabsSettings(containerEl, manager)).open();
   }));
   const elements = Object.values(settings.elements).sort((a, b) => a.order - b.order);
@@ -5174,7 +3326,7 @@ function renderTabRow(container, el, manager) {
         svg.setAttribute("height", "16");
       }
     } else {
-      (0, import_obsidian25.setIcon)(iconSpan, iconToUse);
+      (0, import_obsidian15.setIcon)(iconSpan, iconToUse);
       const svg = iconSpan.querySelector("svg");
       if (svg) {
         svg.setAttribute("width", "16");
@@ -5192,7 +3344,7 @@ function renderTabRow(container, el, manager) {
   info.createEl("div", { cls: "setting-item-name", text: displayName });
   const control = row.createEl("div", { cls: "setting-item-control" });
   if (binding) {
-    new import_obsidian25.ButtonComponent(control).setButtonText(t("Unbind")).setWarning().onClick(async () => {
+    new import_obsidian15.ButtonComponent(control).setButtonText(t("Unbind")).setWarning().onClick(async () => {
       const index = bindings.indexOf(binding);
       if (index > -1) {
         const master = settings.elements[binding.masterId];
@@ -5214,7 +3366,7 @@ function renderTabRow(container, el, manager) {
       }
     });
   } else {
-    new import_obsidian25.DropdownComponent(control).addOption("left", t("Left Sidebar")).addOption("right", t("Right Sidebar")).addOption("hidden", t("Hidden")).setValue(el.visible ? el.side : "hidden").onChange(async (value) => {
+    new import_obsidian15.DropdownComponent(control).addOption("left", t("Left Sidebar")).addOption("right", t("Right Sidebar")).addOption("hidden", t("Hidden")).setValue(el.visible ? el.side : "hidden").onChange(async (value) => {
       if (value === "hidden") {
         await manager.tabsFeature.updateTab(el.id, { visible: false });
       } else {
@@ -5280,117 +3432,8 @@ function handleTabDrag(e, row, el, manager, container) {
   document.addEventListener("mouseup", onMouseUp);
 }
 
-// src/utils/auto-numbering.ts
-var import_obsidian26 = require("obsidian");
-var AutoNumberingController = class {
-  // Default refresh interval matching source
-  constructor(app, plugin, headingsManager, formulasManager) {
-    this.autoUpdateTimeout = null;
-    this.isLoaded = false;
-    this.isDirty = false;
-    this.dirtyRef = null;
-    this.app = app;
-    this.plugin = plugin;
-    this.headingsManager = headingsManager;
-    this.formulasManager = formulasManager;
-  }
-  onload() {
-    if (this.isLoaded)
-      return;
-    this.registerEditorFocusEvents();
-    this.dirtyRef = this.app.workspace.on("editor-change", () => {
-      this.isDirty = true;
-    });
-    this.isLoaded = true;
-  }
-  onunload() {
-    if (!this.isLoaded)
-      return;
-    this.clearAutoUpdateTimer();
-    window.removeEventListener("blur", this.blurHandler);
-    window.removeEventListener("focus", this.focusHandler);
-    if (this.dirtyRef) {
-      this.app.workspace.offref(this.dirtyRef);
-      this.dirtyRef = null;
-    }
-    this.isLoaded = false;
-  }
-  registerEditorFocusEvents() {
-    this.blurHandler = () => this.handleBlur();
-    this.focusHandler = () => this.handleFocus();
-    window.addEventListener("blur", this.blurHandler);
-    window.addEventListener("focus", this.focusHandler);
-  }
-  handleBlur() {
-    if (!this.isDirty)
-      return;
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian26.MarkdownView);
-    if (!activeView || !activeView.file)
-      return;
-    const data = this.app.metadataCache.getFileCache(activeView.file);
-    if (!data)
-      return;
-    const headingSettings = parseHeadingsFrontMatter(data.frontmatter, this.plugin.settings.myHeadings);
-    const formulaSettings = parseFormulasFrontMatter(data.frontmatter, this.plugin.settings.myFormulas);
-    const headingsAuto = headingSettings.enabled && headingSettings.auto;
-    const formulasAuto = formulaSettings.enabled && formulaSettings.auto;
-    if (!headingsAuto && !formulasAuto)
-      return;
-    this.clearAutoUpdateTimer();
-    const delay = this.plugin.settings.refreshInterval || 1e3;
-    this.autoUpdateTimeout = window.setTimeout(() => {
-      this.performAutoUpdate(activeView, headingSettings, formulaSettings);
-    }, delay);
-  }
-  handleFocus() {
-    if (this.autoUpdateTimeout) {
-      this.clearAutoUpdateTimer();
-    }
-  }
-  clearAutoUpdateTimer() {
-    if (this.autoUpdateTimeout) {
-      window.clearTimeout(this.autoUpdateTimeout);
-      this.autoUpdateTimeout = null;
-    }
-  }
-  performAutoUpdate(view, headingSettings, formulaSettings) {
-    if (!view.editor)
-      return;
-    const editor = view.editor;
-    this.isDirty = false;
-    const headingsAuto = headingSettings.enabled && headingSettings.auto;
-    const formulasAuto = formulaSettings.enabled && formulaSettings.auto;
-    if (!headingsAuto && !formulasAuto)
-      return;
-    const cursorBefore = editor.getCursor();
-    const scrollBefore = editor.getScrollInfo();
-    let isChanged = false;
-    try {
-      if (headingsAuto) {
-        if (this.headingsManager.updateNumbering(false, false)) {
-          isChanged = true;
-        }
-      }
-      if (formulasAuto) {
-        if (this.formulasManager.updateNumbering(false, false)) {
-          isChanged = true;
-        }
-      }
-    } catch (e) {
-      console.error("AutoNumbering: Error during update logic", e);
-      this.autoUpdateTimeout = null;
-      return;
-    }
-    if (isChanged) {
-      restoreCursor(editor, cursorBefore);
-      editor.scrollTo(scrollBefore.left, scrollBefore.top);
-    }
-    this.autoUpdateTimeout = null;
-  }
-};
-
 // src/main.ts
-var AssistantPlugin = class extends import_obsidian27.Plugin {
+var AssistantPlugin = class extends import_obsidian16.Plugin {
   async onload() {
     console.log(t("Loading Obsidian Assistant..."));
     console.log(t("Loading Settings..."));
@@ -5399,10 +3442,7 @@ var AssistantPlugin = class extends import_obsidian27.Plugin {
     this.pluginsManager = new PluginsManager(this.app, this);
     this.statusBarManager = new StatusBarManager(this.app, this);
     this.snippetsManager = new SnippetsManager(this.app, this);
-    this.headingsManager = new HeadingsManager(this.app, this);
-    this.formulasManager = new FormulasManager(this.app, this);
     this.sidebarManager = new SidebarManager(this.app, this);
-    this.autoNumberingController = new AutoNumberingController(this.app, this, this.headingsManager, this.formulasManager);
     if (this.settings.myFolders.enabled)
       await this.foldersManager.onload();
     if (this.settings.myPlugins.enabled)
@@ -5411,15 +3451,8 @@ var AssistantPlugin = class extends import_obsidian27.Plugin {
       await this.statusBarManager.onload();
     if (this.settings.mySnippets.enabled)
       await this.snippetsManager.onload();
-    if (this.settings.myHeadings.enabled)
-      await this.headingsManager.onload();
-    if (this.settings.myFormulas.enabled)
-      await this.formulasManager.onload();
     if (this.settings.mySideBar.enabled)
       await this.sidebarManager.onload();
-    if (this.settings.myHeadings.enabled || this.settings.myFormulas.enabled) {
-      this.autoNumberingController.onload();
-    }
     this.addCommand({
       id: "toggle-attachment-folders",
       name: t("Toggle visibility of hidden folders"),
@@ -5446,35 +3479,16 @@ var AssistantPlugin = class extends import_obsidian27.Plugin {
           this.snippetsManager.openCreateModal();
       }
     });
-    this.addCommand({
-      id: "configure-headings",
-      name: t("Configure Headings"),
-      callback: () => {
-        if (this.settings.myHeadings.enabled)
-          this.headingsManager.openControlModal();
-      }
-    });
-    this.addCommand({
-      id: "configure-formulas",
-      name: t("Configure Formulas"),
-      callback: () => {
-        if (this.settings.myFormulas.enabled)
-          this.formulasManager.openControlModal();
-      }
-    });
     this.addSettingTab(new AssistantSettingsTab(this.app, this));
   }
   onunload() {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e;
     console.log(t("Unloading Obsidian Assistant..."));
     (_a = this.foldersManager) == null ? void 0 : _a.onunload();
     (_b = this.pluginsManager) == null ? void 0 : _b.onunload();
     (_c = this.statusBarManager) == null ? void 0 : _c.onunload();
     (_d = this.snippetsManager) == null ? void 0 : _d.onunload();
-    (_e = this.headingsManager) == null ? void 0 : _e.onunload();
-    (_f = this.formulasManager) == null ? void 0 : _f.onunload();
-    (_g = this.sidebarManager) == null ? void 0 : _g.onunload();
-    (_h = this.autoNumberingController) == null ? void 0 : _h.onunload();
+    (_e = this.sidebarManager) == null ? void 0 : _e.onunload();
   }
   async loadSettings() {
     const loadedData = await this.loadData();
@@ -5482,18 +3496,6 @@ var AssistantPlugin = class extends import_obsidian27.Plugin {
       this.migrateSettings(loadedData);
     }
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-    if (loadedData == null ? void 0 : loadedData.myHeadings) {
-      this.settings.myHeadings = Object.assign({}, DEFAULT_SETTINGS.myHeadings, loadedData.myHeadings);
-      if (loadedData.myHeadings.styleToRemove) {
-        this.settings.myHeadings.styleToRemove = {
-          beginning: Object.assign({}, DEFAULT_SETTINGS.myHeadings.styleToRemove.beginning, loadedData.myHeadings.styleToRemove.beginning),
-          surrounding: Object.assign({}, DEFAULT_SETTINGS.myHeadings.styleToRemove.surrounding, loadedData.myHeadings.styleToRemove.surrounding)
-        };
-      }
-    }
-    if (loadedData == null ? void 0 : loadedData.myFormulas) {
-      this.settings.myFormulas = Object.assign({}, DEFAULT_SETTINGS.myFormulas, loadedData.myFormulas);
-    }
     if (loadedData == null ? void 0 : loadedData.myFolders) {
       this.settings.myFolders = Object.assign({}, DEFAULT_SETTINGS.myFolders, loadedData.myFolders);
     }
@@ -5549,31 +3551,15 @@ var AssistantPlugin = class extends import_obsidian27.Plugin {
     delete data.statusBarOrganizer;
   }
 };
-var AssistantSettingsTab = class extends import_obsidian27.PluginSettingTab {
+var AssistantSettingsTab = class extends import_obsidian16.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
-  }
-  refreshAutoNumberingController() {
-    const anyActive = this.plugin.settings.myHeadings.enabled || this.plugin.settings.myFormulas.enabled;
-    this.plugin.autoNumberingController.onunload();
-    if (anyActive) {
-      this.plugin.autoNumberingController.onload();
-    }
   }
   display() {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: t("Obsidian Assistant Settings") });
-    containerEl.createEl("h3", { text: t("Global Settings") });
-    new import_obsidian27.Setting(containerEl).setName(t("Auto-Numbering Refresh Interval")).setDesc(t("Time in milliseconds to wait before auto-numbering triggers (after losing focus)")).addText((text) => text.setPlaceholder("1000").setValue(String(this.plugin.settings.refreshInterval)).onChange(async (value) => {
-      const interval = parseInt(value);
-      if (!isNaN(interval) && interval > 0) {
-        this.plugin.settings.refreshInterval = interval;
-        await this.plugin.saveSettings();
-      }
-    }));
-    containerEl.createEl("br");
     containerEl.createEl("h3", { text: t("Modules") });
     this.addPluginSection(
       containerEl,
@@ -5645,42 +3631,6 @@ var AssistantSettingsTab = class extends import_obsidian27.PluginSettingTab {
     );
     this.addPluginSection(
       containerEl,
-      t("My Headings"),
-      this.plugin.settings.myHeadings.enabled,
-      async (value) => {
-        this.plugin.settings.myHeadings.enabled = value;
-        await this.plugin.saveSettings();
-        if (value) {
-          await this.plugin.headingsManager.onload();
-        } else {
-          this.plugin.headingsManager.onunload();
-        }
-        this.refreshAutoNumberingController();
-      },
-      (el) => {
-        renderHeadingsSettings(el, this.plugin.headingsManager);
-      }
-    );
-    this.addPluginSection(
-      containerEl,
-      t("My Formulas"),
-      this.plugin.settings.myFormulas.enabled,
-      async (value) => {
-        this.plugin.settings.myFormulas.enabled = value;
-        await this.plugin.saveSettings();
-        if (value) {
-          await this.plugin.formulasManager.onload();
-        } else {
-          this.plugin.formulasManager.onunload();
-        }
-        this.refreshAutoNumberingController();
-      },
-      (el) => {
-        renderFormulasSettings(el, this.plugin.formulasManager);
-      }
-    );
-    this.addPluginSection(
-      containerEl,
       t("My SideBar"),
       this.plugin.settings.mySideBar.enabled,
       async (value) => {
@@ -5719,7 +3669,7 @@ var AssistantSettingsTab = class extends import_obsidian27.PluginSettingTab {
     titleContainer.createEl("strong", { text: title });
     const toggleContainer = summary.createEl("div");
     toggleContainer.onclick = (e) => e.preventDefault();
-    const toggleSetting = new import_obsidian27.Setting(toggleContainer).addToggle((toggle) => toggle.setValue(isEnabled).onChange(onToggle));
+    const toggleSetting = new import_obsidian16.Setting(toggleContainer).addToggle((toggle) => toggle.setValue(isEnabled).onChange(onToggle));
     toggleSetting.settingEl.style.border = "none";
     toggleSetting.settingEl.style.padding = "0";
     toggleSetting.infoEl.remove();

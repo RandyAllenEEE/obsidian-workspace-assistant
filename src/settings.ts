@@ -6,9 +6,6 @@ export interface AssistantSettings {
     mySideBar: MySideBarSettings;
     myStatusBar: MyStatusBarSettings;
     mySnippets: MySnippetsSettings;
-    myHeadings: MyHeadingsSettings;
-    myFormulas: MyFormulasSettings;
-    refreshInterval?: number; // Global auto-numbering refresh interval
 }
 
 export const DEFAULT_SETTINGS: AssistantSettings = {
@@ -17,9 +14,6 @@ export const DEFAULT_SETTINGS: AssistantSettings = {
     mySideBar: null as any,
     myStatusBar: null as any,
     mySnippets: null as any,
-    myHeadings: null as any,
-    myFormulas: null as any,
-    refreshInterval: 1000,
 };
 
 // MyFolders Settings
@@ -128,89 +122,7 @@ export const DEFAULT_MY_SNIPPETS_SETTINGS: MySnippetsSettings = {
     enabled: true
 };
 
-// MyHeadings Settings
-export interface MyHeadingsSettings {
-    // Auto Numbering
-    enabled: boolean;
-    auto: boolean;
-    firstLevel: number;
-    maxLevel: number;
-    headingStyles: string[];
-    headingSeparators: string[];
-    headingStartValues: string[];
-    skipHeadings: string;
 
-    // Heading Shifter
-    limitHeadingFrom: number;
-    overrideTab: boolean;
-    styleToRemove: {
-        beginning: {
-            ul: boolean;
-            ol: boolean;
-            userDefined: string[];
-        };
-        surrounding: {
-            bold: boolean;
-            italic: boolean;
-            userDefined: string[];
-        };
-    };
-    list: {
-        childrenBehavior: "outdent to zero" | "sync with headings" | "noting";
-    };
-    editor: {
-        tabSize: number;
-    };
-}
-
-export const DEFAULT_MY_HEADINGS_SETTINGS: MyHeadingsSettings = {
-    // Auto Numbering
-    enabled: true,
-    auto: false,
-    firstLevel: 1,
-    maxLevel: 6,
-    headingStyles: ['1', 'a', 'A', '一', '①', '1'],
-    headingSeparators: ['', '-', ':', '.', '—', '-'],
-    headingStartValues: ['0', '1', '1', '1', '1', '1'],
-    skipHeadings: '',
-
-    // Heading Shifter
-    limitHeadingFrom: 1,
-    overrideTab: false,
-    styleToRemove: {
-        beginning: {
-            ul: true,
-            ol: true,
-            userDefined: [],
-        },
-        surrounding: {
-            bold: true,
-            italic: true,
-            userDefined: [],
-        },
-    },
-    list: {
-        childrenBehavior: "outdent to zero",
-    },
-    editor: {
-        tabSize: 4,
-    },
-};
-
-// MyFormulas Settings
-export interface MyFormulasSettings {
-    enabled: boolean;
-    auto: boolean;
-    mode: 'continuous' | 'heading-based';
-    maxDepth: number;
-}
-
-export const DEFAULT_MY_FORMULAS_SETTINGS: MyFormulasSettings = {
-    enabled: true,
-    auto: false,
-    mode: 'continuous',
-    maxDepth: 4
-};
 
 // MySideBar Settings
 import { RibbonElement } from "./sidebar/types";
@@ -301,5 +213,3 @@ DEFAULT_SETTINGS.myFolders = DEFAULT_MY_FOLDERS_SETTINGS;
 DEFAULT_SETTINGS.mySideBar = DEFAULT_MY_SIDEBAR_SETTINGS;
 DEFAULT_SETTINGS.myStatusBar = DEFAULT_STATUS_BAR_SETTINGS;
 DEFAULT_SETTINGS.mySnippets = DEFAULT_MY_SNIPPETS_SETTINGS;
-DEFAULT_SETTINGS.myHeadings = DEFAULT_MY_HEADINGS_SETTINGS;
-DEFAULT_SETTINGS.myFormulas = DEFAULT_MY_FORMULAS_SETTINGS;
