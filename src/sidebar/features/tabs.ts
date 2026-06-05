@@ -32,6 +32,10 @@ function getSidebarTabIcon(leaf: WorkspaceLeaf): string | undefined {
     return normalizedIcon;
 }
 
+type ScanOptions = {
+    preserveHidden?: boolean;
+};
+
 export class SidebarTabsFeature {
     app: App;
     plugin: AssistantPlugin;
@@ -49,23 +53,23 @@ export class SidebarTabsFeature {
         this.app.workspace.onLayoutReady(() => {
             // Initial delayed scan/apply to let other plugins load
             this.scanTimer = window.setTimeout(() => {
-                this.scanAndApply();
+                this.scanAndApply({ preserveHidden: true });
                 this.scanTimer = null;
             }, 1000);
         });
     }
 
-    async scanAndApply() {
+    async scanAndApply(options: ScanOptions = {}) {
         if (!this.plugin.settings.mySideBar.tabs.enabled) return;
 
         // 1. Scan current tabs to populate settings with any new ones
-        await this.scan();
+        await this.scan(options);
 
         // 2. Apply saved layout
         await this.applyLayout();
     }
 
-    async scan() {
+    async scan(options: ScanOptions = {}) {
         const settings = this.plugin.settings.mySideBar.tabs;
         let changed = false;
         let order = 0;
@@ -109,6 +113,15 @@ export class SidebarTabsFeature {
                     changed = true;
                 } else {
                     const element = settings.elements[viewType];
+
+                    // Startup layout restore can briefly expose hidden tabs before we apply saved layout.
+                    if (options.preserveHidden && !element.visible) {
+                        if (icon && element.icon !== icon) {
+                            element.icon = icon;
+                            changed = true;
+                        }
+                        return;
+                    }
 
                     if (element.side !== side) {
                         element.side = side;

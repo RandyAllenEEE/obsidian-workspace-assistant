@@ -167,9 +167,8 @@ var import_obsidian = require("obsidian");
 // src/i18n/locales/en.ts
 var en_default = {
   // General
-  "Module is disabled.": "Module is disabled.",
+  "Feature is disabled.": "Feature is disabled.",
   "Obsidian Assistant Settings": "Obsidian Assistant Settings",
-  "Modules": "Modules",
   // My Folders
   "My Folders": "My Folders",
   "Loading MyFolders module": "Loading MyFolders module",
@@ -264,8 +263,8 @@ var en_default = {
   "Show Status Bar Icon": "Show Status Bar Icon",
   "Toggle the visibility of the snippets icon in the status bar.": "Toggle the visibility of the snippets icon in the status bar.",
   "Manage Snippets": "Manage Snippets",
-  "Reload Snippets": "Reload Snippets",
-  "Click to refresh the list of snippets.": "Click to refresh the list of snippets.",
+  "Scan Snippets": "Scan Snippets",
+  "Scan and refresh CSS snippet list": "Scan and refresh CSS snippet list",
   "Glass menu effect": "Glass menu effect",
   "Choose to change the background from the secondary background color of your theme to a glass background.": "Choose to change the background from the secondary background color of your theme to a glass background.",
   "Auto open new snippet": "Auto open new snippet",
@@ -332,6 +331,7 @@ var en_default = {
   "Manage placement of sidebar tabs (like File Explorer, Search).": "Manage placement of sidebar tabs (like File Explorer, Search).",
   "Scan Current Layout": "Scan Current Layout",
   "Scan and apply": "Scan and save current sidebar layout",
+  "Scan": "Scan",
   "Hidden": "Hidden",
   "Default": "Default",
   "Move to Left Sidebar": "Move to Left Sidebar",
@@ -366,9 +366,8 @@ var en_default = {
 // src/i18n/locales/zh.ts
 var zh_default = {
   // General
-  "Module is disabled.": "\u6A21\u5757\u5DF2\u7981\u7528\u3002",
+  "Feature is disabled.": "\u529F\u80FD\u5DF2\u7981\u7528\u3002",
   "Obsidian Assistant Settings": "Obsidian Assistant \u8BBE\u7F6E",
-  "Modules": "\u6A21\u5757",
   // My Folders
   "My Folders": "\u6211\u7684\u6587\u4EF6\u5939",
   "Toggle visibility of hidden folders": "\u5207\u6362\u9690\u85CF\u6587\u4EF6\u5939\u7684\u53EF\u89C1\u6027",
@@ -461,8 +460,8 @@ var zh_default = {
   "Show Status Bar Icon": "\u663E\u793A\u72B6\u6001\u680F\u56FE\u6807",
   "Toggle the visibility of the snippets icon in the status bar.": "\u5207\u6362\u72B6\u6001\u680F\u7247\u6BB5\u56FE\u6807\u7684\u53EF\u89C1\u6027\u3002",
   "Manage Snippets": "\u7BA1\u7406\u4EE3\u7801\u7247\u6BB5",
-  "Reload Snippets": "\u91CD\u8F7D\u4EE3\u7801\u7247\u6BB5",
-  "Click to refresh the list of snippets.": "\u70B9\u51FB\u5237\u65B0\u4EE3\u7801\u7247\u6BB5\u5217\u8868\u3002",
+  "Scan Snippets": "\u626B\u63CF\u4EE3\u7801\u7247\u6BB5",
+  "Scan and refresh CSS snippet list": "\u626B\u63CF\u5E76\u5237\u65B0 CSS \u4EE3\u7801\u7247\u6BB5\u5217\u8868",
   "Glass menu effect": "\u6BDB\u73BB\u7483\u83DC\u5355\u6548\u679C",
   "Choose to change the background from the secondary background color of your theme to a glass background.": "\u9009\u62E9\u5C06\u80CC\u666F\u4ECE\u4E3B\u9898\u7684\u6B21\u8981\u80CC\u666F\u989C\u8272\u66F4\u6539\u4E3A\u6BDB\u73BB\u7483\u80CC\u666F\u3002",
   "Auto open new snippet": "\u81EA\u52A8\u6253\u5F00\u65B0\u7247\u6BB5",
@@ -529,6 +528,7 @@ var zh_default = {
   "Manage placement of sidebar tabs (like File Explorer, Search).": "\u7BA1\u7406\u4FA7\u8FB9\u680F\u6807\u7B7E\u9875\uFF08\u5982\u6587\u4EF6\u8D44\u6E90\u7BA1\u7406\u5668\u3001\u641C\u7D22\uFF09\u7684\u653E\u7F6E\u4F4D\u7F6E\u3002",
   "Scan Current Layout": "\u626B\u63CF\u5F53\u524D\u5E03\u5C40",
   "Scan and apply": "\u626B\u63CF\u5E76\u4FDD\u5B58\u5F53\u524D\u4FA7\u8FB9\u680F\u5E03\u5C40",
+  "Scan": "\u626B\u63CF",
   "Hidden": "\u9690\u85CF",
   "Default": "\u9ED8\u8BA4",
   "Move to Left Sidebar": "\u79FB\u52A8\u5230\u5DE6\u4FA7\u8FB9\u680F",
@@ -1767,7 +1767,6 @@ var SnippetsManager = class {
 // src/snippets/settings-ui.ts
 var import_obsidian11 = require("obsidian");
 function renderSnippetsSettings(containerEl, manager) {
-  const plugin = manager.plugin;
   const settings = manager.settings;
   new import_obsidian11.Setting(containerEl).setName(t("Show Status Bar Icon")).setDesc(t("Toggle the visibility of the snippets icon in the status bar.")).addToggle((toggle) => {
     toggle.setValue(settings.showStatusBarIcon).onChange(async (value) => {
@@ -1842,6 +1841,10 @@ function renderSnippetsList(containerEl, manager) {
   const app = manager.app;
   const customCss = app.customCss;
   const currentSnippets = customCss.snippets;
+  new import_obsidian11.Setting(containerEl).setName(t("Scan Snippets")).setDesc(t("Scan and refresh CSS snippet list")).addButton((button) => button.setButtonText(t("Scan")).onClick(async () => {
+    await customCss.requestLoadSnippets();
+    renderSnippetsList(containerEl, manager);
+  }));
   if (currentSnippets.length === 0) {
     containerEl.createEl("p", { text: t("No CSS snippets found.") });
     return;
@@ -1853,12 +1856,6 @@ function renderSnippetsList(containerEl, manager) {
       });
     });
   });
-  const buttonContainer = containerEl.createDiv();
-  buttonContainer.addClass("ms-reload-container");
-  new import_obsidian11.Setting(buttonContainer).addButton((button) => button.setButtonText(t("Reload Snippets")).onClick(() => {
-    customCss.requestLoadSnippets();
-    renderSnippetsList(containerEl, manager);
-  }));
 }
 
 // src/sidebar/features/auto-hide.ts
@@ -2305,13 +2302,12 @@ var RibbonFeature = class {
       }
     });
     const settingsElements = this.settings.elements;
-    const knownIDs = Object.keys(settingsElements);
     let maxOrder = 0;
     Object.values(settingsElements).forEach((el) => {
       if (el.order > maxOrder)
         maxOrder = el.order;
     });
-    const newElements = [];
+    let changed = false;
     for (const [id, el] of domElementsMap.entries()) {
       if (!settingsElements[id]) {
         maxOrder++;
@@ -2322,12 +2318,13 @@ var RibbonFeature = class {
           order: maxOrder,
           icon: ((_a = el.querySelector("svg")) == null ? void 0 : _a.outerHTML) || el.innerHTML
         };
-        newElements.push(newEl);
         settingsElements[id] = newEl;
+        changed = true;
       } else {
         const icon = ((_b = el.querySelector("svg")) == null ? void 0 : _b.outerHTML) || el.innerHTML;
         if (icon && settingsElements[id].icon !== icon) {
           settingsElements[id].icon = icon;
+          changed = true;
         }
       }
     }
@@ -2353,7 +2350,7 @@ var RibbonFeature = class {
       }
     }
     this.isInternalChange = false;
-    if (newElements.length > 0) {
+    if (changed) {
       await this.plugin.saveSettings();
     }
   }
@@ -2377,6 +2374,30 @@ var RibbonFeature = class {
 
 // src/sidebar/features/tabs.ts
 var import_obsidian12 = require("obsidian");
+var IGNORED_VIEW_ICONS = /* @__PURE__ */ new Set([
+  "",
+  "help",
+  "help-circle",
+  "lucide-help-circle",
+  "circle-help",
+  "lucide-circle-help",
+  "alert-triangle",
+  "lucide-alert-triangle",
+  "file-question",
+  "lucide-file-question",
+  "ghost",
+  "lucide-ghost"
+]);
+function getSidebarTabIcon(leaf) {
+  const view = leaf.view;
+  const icon = typeof view.getIcon === "function" ? view.getIcon() : view.icon;
+  if (typeof icon !== "string")
+    return void 0;
+  const normalizedIcon = icon.trim();
+  if (!normalizedIcon || IGNORED_VIEW_ICONS.has(normalizedIcon))
+    return void 0;
+  return normalizedIcon;
+}
 var SidebarTabsFeature = class {
   constructor(app, plugin) {
     this.scanTimer = null;
@@ -2389,20 +2410,22 @@ var SidebarTabsFeature = class {
       return;
     this.app.workspace.onLayoutReady(() => {
       this.scanTimer = window.setTimeout(() => {
-        this.scanAndApply();
+        this.scanAndApply({ preserveHidden: true });
         this.scanTimer = null;
       }, 1e3);
     });
   }
-  async scanAndApply() {
+  async scanAndApply(options = {}) {
     if (!this.plugin.settings.mySideBar.tabs.enabled)
       return;
-    await this.scan();
+    await this.scan(options);
     await this.applyLayout();
   }
-  async scan() {
+  async scan(options = {}) {
     const settings = this.plugin.settings.mySideBar.tabs;
     let changed = false;
+    let order = 0;
+    const slaveIds = new Set((settings.bindings || []).map((binding) => binding.slaveId));
     const processSplit = (split, side) => {
       if (!split)
         return;
@@ -2410,24 +2433,81 @@ var SidebarTabsFeature = class {
         const viewType = leaf.view.getViewType();
         if (leaf.view.containerEl.dataset.assistantContextualSlave === "true")
           return;
+        const icon = getSidebarTabIcon(leaf);
+        if (slaveIds.has(viewType)) {
+          if (!settings.elements[viewType]) {
+            settings.elements[viewType] = {
+              id: viewType,
+              side,
+              visible: false,
+              order,
+              icon
+            };
+            changed = true;
+          } else if (icon && settings.elements[viewType].icon !== icon) {
+            settings.elements[viewType].icon = icon;
+            changed = true;
+          }
+          return;
+        }
         if (!settings.elements[viewType]) {
-          const maxOrder = Object.values(settings.elements).reduce((max, el) => Math.max(max, el.order), -1);
           settings.elements[viewType] = {
             id: viewType,
             side,
             visible: true,
-            order: maxOrder + 1,
-            icon: leaf.view.icon
+            order,
+            icon
           };
           changed = true;
-        } else if (!settings.elements[viewType].icon && leaf.view.icon) {
-          settings.elements[viewType].icon = leaf.view.icon;
-          changed = true;
+        } else {
+          const element = settings.elements[viewType];
+          if (options.preserveHidden && !element.visible) {
+            if (icon && element.icon !== icon) {
+              element.icon = icon;
+              changed = true;
+            }
+            return;
+          }
+          if (element.side !== side) {
+            element.side = side;
+            changed = true;
+          }
+          if (!element.visible) {
+            element.visible = true;
+            changed = true;
+          }
+          if (element.order !== order) {
+            element.order = order;
+            changed = true;
+          }
+          if (icon && element.icon !== icon) {
+            element.icon = icon;
+            changed = true;
+          }
         }
+        order++;
       }, split);
     };
     processSplit(this.app.workspace.leftSplit, "left");
     processSplit(this.app.workspace.rightSplit, "right");
+    for (const binding of settings.bindings || []) {
+      const master = settings.elements[binding.masterId];
+      const slave = settings.elements[binding.slaveId];
+      if (!master || !slave)
+        continue;
+      if (slave.visible) {
+        slave.visible = false;
+        changed = true;
+      }
+      if (slave.side !== master.side) {
+        slave.side = master.side;
+        changed = true;
+      }
+      if (slave.order !== master.order + 0.01) {
+        slave.order = master.order + 0.01;
+        changed = true;
+      }
+    }
     if (changed) {
       await this.plugin.saveSettings();
     }
@@ -3560,7 +3640,6 @@ var AssistantSettingsTab = class extends import_obsidian16.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: t("Obsidian Assistant Settings") });
-    containerEl.createEl("h3", { text: t("Modules") });
     this.addPluginSection(
       containerEl,
       t("My Folders"),
@@ -3679,7 +3758,7 @@ var AssistantSettingsTab = class extends import_obsidian16.PluginSettingTab {
     if (isEnabled) {
       renderBody(content);
     } else {
-      content.createEl("i", { text: t("Module is disabled.") });
+      content.createEl("i", { text: t("Feature is disabled.") });
     }
   }
 };
