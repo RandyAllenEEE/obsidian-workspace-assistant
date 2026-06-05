@@ -327,12 +327,6 @@ MYSNIPPETS SETTINGS
     color: var(--text-normal);
 }
 
-.ms-reload-container {
-    padding-top: 16px;
-    display: flex;
-    justify-content: flex-end;
-}
-
 details summary {
     cursor: pointer;
     font-weight: 600;

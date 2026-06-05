@@ -1,8 +1,7 @@
 export default {
     // General
-    "Module is disabled.": "Module is disabled.",
+    "Feature is disabled.": "Feature is disabled.",
     "Obsidian Assistant Settings": "Obsidian Assistant Settings",
-    "Modules": "Modules",
 
     // My Folders
     "My Folders": "My Folders",
@@ -101,8 +100,8 @@ export default {
     "Show Status Bar Icon": "Show Status Bar Icon",
     "Toggle the visibility of the snippets icon in the status bar.": "Toggle the visibility of the snippets icon in the status bar.",
     "Manage Snippets": "Manage Snippets",
-    "Reload Snippets": "Reload Snippets",
-    "Click to refresh the list of snippets.": "Click to refresh the list of snippets.",
+    "Scan Snippets": "Scan Snippets",
+    "Scan and refresh CSS snippet list": "Scan and refresh CSS snippet list",
     "Glass menu effect": "Glass menu effect",
     "Choose to change the background from the secondary background color of your theme to a glass background.": "Choose to change the background from the secondary background color of your theme to a glass background.",
     "Auto open new snippet": "Auto open new snippet",
@@ -174,6 +173,7 @@ export default {
     'Manage placement of sidebar tabs (like File Explorer, Search).': 'Manage placement of sidebar tabs (like File Explorer, Search).',
     'Scan Current Layout': 'Scan Current Layout',
     'Scan and apply': 'Scan and save current sidebar layout',
+    'Scan': 'Scan',
 
     'Hidden': 'Hidden',
     'Default': 'Default',

@@ -1,11 +1,9 @@
-import { Action, Setting, TextAreaComponent } from "obsidian";
+import { Setting, TextAreaComponent } from "obsidian";
 import { SnippetsManager } from "./manager";
 import { setAttributes } from "./util/setAttributes";
-import { MySnippetsSettings } from "../settings";
 import { t } from "../i18n/helpers";
 
 export function renderSnippetsSettings(containerEl: HTMLElement, manager: SnippetsManager) {
-    const plugin = manager.plugin;
     // We access settings via manager.settings which references plugin.settings.mySnippets
     const settings = manager.settings;
 
@@ -118,6 +116,16 @@ function renderSnippetsList(containerEl: HTMLElement, manager: SnippetsManager) 
     const customCss = app.customCss;
     const currentSnippets = customCss.snippets;
 
+    new Setting(containerEl)
+        .setName(t("Scan Snippets"))
+        .setDesc(t("Scan and refresh CSS snippet list"))
+        .addButton(button => button
+            .setButtonText(t("Scan"))
+            .onClick(async () => {
+                await customCss.requestLoadSnippets();
+                renderSnippetsList(containerEl, manager);
+            }));
+
     if (currentSnippets.length === 0) {
         containerEl.createEl("p", { text: t("No CSS snippets found.") });
         return;
@@ -134,17 +142,6 @@ function renderSnippetsList(containerEl: HTMLElement, manager: SnippetsManager) 
                     });
             });
     });
-
-    const buttonContainer = containerEl.createDiv();
-    buttonContainer.addClass("ms-reload-container");
-
-    new Setting(buttonContainer)
-        .addButton(button => button
-            .setButtonText(t("Reload Snippets"))
-            .onClick(() => {
-                customCss.requestLoadSnippets();
-                renderSnippetsList(containerEl, manager); // Re-render list
-            }));
 }
 
 

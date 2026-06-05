@@ -1,7 +1,36 @@
-import { App, WorkspaceLeaf, WorkspaceItem, Notice } from "obsidian";
+import { App, WorkspaceLeaf, Notice } from "obsidian";
 import AssistantPlugin from "../../main";
 import { SidebarTabElement } from "../../settings";
 import { t } from "../../i18n/helpers";
+
+const IGNORED_VIEW_ICONS = new Set([
+    "",
+    "help",
+    "help-circle",
+    "lucide-help-circle",
+    "circle-help",
+    "lucide-circle-help",
+    "alert-triangle",
+    "lucide-alert-triangle",
+    "file-question",
+    "lucide-file-question",
+    "ghost",
+    "lucide-ghost"
+]);
+
+function getSidebarTabIcon(leaf: WorkspaceLeaf): string | undefined {
+    const view = leaf.view as any;
+    const icon = typeof view.getIcon === "function"
+        ? view.getIcon()
+        : view.icon;
+
+    if (typeof icon !== "string") return undefined;
+
+    const normalizedIcon = icon.trim();
+    if (!normalizedIcon || IGNORED_VIEW_ICONS.has(normalizedIcon)) return undefined;
+
+    return normalizedIcon;
+}
 
 export class SidebarTabsFeature {
     app: App;
@@ -39,6 +68,8 @@ export class SidebarTabsFeature {
     async scan() {
         const settings = this.plugin.settings.mySideBar.tabs;
         let changed = false;
+        let order = 0;
+        const slaveIds = new Set((settings.bindings || []).map(binding => binding.slaveId));
 
         const processSplit = (split: any, side: 'left' | 'right') => {
             if (!split) return;
@@ -48,30 +79,80 @@ export class SidebarTabsFeature {
                 // Ignore Contextual Slaves
                 if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") return;
 
-                // Only manage if not already managed
-                if (!settings.elements[viewType]) {
-                    // For scan, we append to end
-                    const maxOrder = Object.values(settings.elements)
-                        .reduce((max, el) => Math.max(max, el.order), -1);
+                const icon = getSidebarTabIcon(leaf);
 
+                if (slaveIds.has(viewType)) {
+                    if (!settings.elements[viewType]) {
+                        settings.elements[viewType] = {
+                            id: viewType,
+                            side: side,
+                            visible: false,
+                            order: order,
+                            icon: icon
+                        };
+                        changed = true;
+                    } else if (icon && settings.elements[viewType].icon !== icon) {
+                        settings.elements[viewType].icon = icon;
+                        changed = true;
+                    }
+                    return;
+                }
+
+                if (!settings.elements[viewType]) {
                     settings.elements[viewType] = {
                         id: viewType,
                         side: side,
                         visible: true,
-                        order: maxOrder + 1,
-                        icon: leaf.view.icon
+                        order: order,
+                        icon: icon
                     };
                     changed = true;
-                } else if (!settings.elements[viewType].icon && leaf.view.icon) {
-                    // Update icon if missing
-                    settings.elements[viewType].icon = leaf.view.icon;
-                    changed = true;
+                } else {
+                    const element = settings.elements[viewType];
+
+                    if (element.side !== side) {
+                        element.side = side;
+                        changed = true;
+                    }
+                    if (!element.visible) {
+                        element.visible = true;
+                        changed = true;
+                    }
+                    if (element.order !== order) {
+                        element.order = order;
+                        changed = true;
+                    }
+                    if (icon && element.icon !== icon) {
+                        element.icon = icon;
+                        changed = true;
+                    }
                 }
+
+                order++;
             }, split);
         };
 
         processSplit(this.app.workspace.leftSplit, 'left');
         processSplit(this.app.workspace.rightSplit, 'right');
+
+        for (const binding of settings.bindings || []) {
+            const master = settings.elements[binding.masterId];
+            const slave = settings.elements[binding.slaveId];
+            if (!master || !slave) continue;
+
+            if (slave.visible) {
+                slave.visible = false;
+                changed = true;
+            }
+            if (slave.side !== master.side) {
+                slave.side = master.side;
+                changed = true;
+            }
+            if (slave.order !== master.order + 0.01) {
+                slave.order = master.order + 0.01;
+                changed = true;
+            }
+        }
 
         if (changed) {
             await this.plugin.saveSettings();

@@ -177,9 +177,6 @@ class AssistantSettingsTab extends PluginSettingTab {
         containerEl.empty();
         containerEl.createEl('h2', { text: t('Obsidian Assistant Settings') });
 
-        containerEl.createEl('h3', { text: t('Modules') });
-
-
         // MyFolders Section
         this.addPluginSection(
             containerEl,
@@ -327,7 +324,7 @@ class AssistantSettingsTab extends PluginSettingTab {
         if (isEnabled) {
             renderBody(content);
         } else {
-            content.createEl('i', { text: t('Module is disabled.') });
+            content.createEl('i', { text: t('Feature is disabled.') });
         }
     }
 }

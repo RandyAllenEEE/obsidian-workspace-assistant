@@ -1,4 +1,4 @@
-import { App, Menu } from "obsidian";
+import { App } from "obsidian";
 import AssistantPlugin from "../../main";
 import { RibbonElement, RibbonSettings } from "../types";
 
@@ -146,7 +146,6 @@ export class RibbonFeature {
         });
 
         const settingsElements = this.settings.elements;
-        const knownIDs = Object.keys(settingsElements);
 
         // 1. Check for new elements
         let maxOrder = 0;
@@ -154,7 +153,7 @@ export class RibbonFeature {
             if (el.order > maxOrder) maxOrder = el.order;
         });
 
-        const newElements: RibbonElement[] = [];
+        let changed = false;
         for (const [id, el] of domElementsMap.entries()) {
             if (!settingsElements[id]) {
                 maxOrder++;
@@ -165,13 +164,14 @@ export class RibbonFeature {
                     order: maxOrder,
                     icon: el.querySelector("svg")?.outerHTML || el.innerHTML
                 };
-                newElements.push(newEl);
                 settingsElements[id] = newEl;
+                changed = true;
             } else {
                 // Update icon
                 const icon = el.querySelector("svg")?.outerHTML || el.innerHTML;
                 if (icon && settingsElements[id].icon !== icon) {
                     settingsElements[id].icon = icon;
+                    changed = true;
                 }
             }
         }
@@ -217,7 +217,7 @@ export class RibbonFeature {
 
         this.isInternalChange = false;
 
-        if (newElements.length > 0) {
+        if (changed) {
             await this.plugin.saveSettings();
         }
     }

@@ -1,8 +1,7 @@
 export default {
     // General
-    "Module is disabled.": "模块已禁用。",
+    "Feature is disabled.": "功能已禁用。",
     "Obsidian Assistant Settings": "Obsidian Assistant 设置",
-    "Modules": "模块",
 
     // My Folders
     "My Folders": "我的文件夹",
@@ -99,8 +98,8 @@ export default {
     "Show Status Bar Icon": "显示状态栏图标",
     "Toggle the visibility of the snippets icon in the status bar.": "切换状态栏片段图标的可见性。",
     "Manage Snippets": "管理代码片段",
-    "Reload Snippets": "重载代码片段",
-    "Click to refresh the list of snippets.": "点击刷新代码片段列表。",
+    "Scan Snippets": "扫描代码片段",
+    "Scan and refresh CSS snippet list": "扫描并刷新 CSS 代码片段列表",
     "Glass menu effect": "毛玻璃菜单效果",
     "Choose to change the background from the secondary background color of your theme to a glass background.": "选择将背景从主题的次要背景颜色更改为毛玻璃背景。",
     "Auto open new snippet": "自动打开新片段",
@@ -170,6 +169,7 @@ export default {
     'Manage placement of sidebar tabs (like File Explorer, Search).': '管理侧边栏标签页（如文件资源管理器、搜索）的放置位置。',
     'Scan Current Layout': '扫描当前布局',
     'Scan and apply': '扫描并保存当前侧边栏布局',
+    'Scan': '扫描',
 
     'Hidden': '隐藏',
     'Default': '默认',
