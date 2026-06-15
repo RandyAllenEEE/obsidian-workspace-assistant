@@ -1,4 +1,4 @@
-import { App } from "obsidian";
+import { App, EventRef } from "obsidian";
 import AssistantPlugin from "../../main";
 import { ExtendedWorkspaceSplit, ExtendedWorkspaceRibbon } from "../types";
 
@@ -120,8 +120,10 @@ export class AutoHideFeature {
     app: App;
     plugin: AssistantPlugin;
 
-    private layoutChangeRef: any = null;
+    private layoutChangeRef: EventRef | null = null;
+    private isLoading = false;
     private isInitialized = false;
+    private loadGeneration = 0;
 
     leftRibbon: ExtendedWorkspaceRibbon;
 
@@ -148,19 +150,30 @@ export class AutoHideFeature {
     }
 
     onload() {
+        if (this.isLoading || this.isInitialized || !this.settings.enabled) return;
+        this.isLoading = true;
+        const generation = ++this.loadGeneration;
+
         if (this.settings.overlayMode) {
             document.body.classList.add("sidebar-overlay-mode");
         }
+        document.body.classList.remove("obsidian-assistant-overlay-mode");
         document.body.classList.add("open-sidebar-hover-plugin");
         this.updateCSSVariables();
 
-        this.app.workspace.onLayoutReady(() => {
+        const runInit = () => {
+            if (generation !== this.loadGeneration) return;
+            if (!this.isLoading) return;
             this.init();
-        });
+        };
+
+        if (this.app.workspace.layoutReady) runInit();
+        else this.app.workspace.onLayoutReady(runInit);
     }
 
     init() {
         if (this.isInitialized) return;
+        this.isLoading = false;
         this.isInitialized = true;
 
         const leftSplit = this.app.workspace.leftSplit as unknown as ExtendedWorkspaceSplit;
@@ -233,13 +246,21 @@ export class AutoHideFeature {
     }
 
     onunload() {
+        this.isLoading = false;
+        this.loadGeneration++;
+
+        document.body.classList.remove("sidebar-overlay-mode");
+        document.body.classList.remove("obsidian-assistant-overlay-mode");
+        document.body.classList.remove("open-sidebar-hover-plugin");
+
+        // Remove CSS variables style element
+        const styleEl = document.getElementById('obsidian-assistant-sidebar-variables');
+        if (styleEl) styleEl.remove();
+
         if (!this.isInitialized) return;
 
         this.leftController?.cleanup();
         this.rightController?.cleanup();
-
-        document.body.classList.remove("sidebar-overlay-mode");
-        document.body.classList.remove("open-sidebar-hover-plugin");
 
         document.removeEventListener("mousemove", this.mouseMoveHandler);
         if (this.documentClickHandler) document.removeEventListener("click", this.documentClickHandler);
@@ -257,10 +278,6 @@ export class AutoHideFeature {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
         }
-
-        // Remove CSS variables style element
-        const styleEl = document.getElementById('obsidian-assistant-sidebar-variables');
-        if (styleEl) styleEl.remove();
 
         if (this.layoutChangeRef) {
             this.app.workspace.offref(this.layoutChangeRef);

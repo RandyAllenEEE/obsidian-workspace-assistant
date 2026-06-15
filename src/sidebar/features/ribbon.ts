@@ -1,17 +1,23 @@
-import { App } from "obsidian";
+import { App, Platform } from "obsidian";
 import AssistantPlugin from "../../main";
-import { RibbonElement, RibbonSettings } from "../types";
+import { RibbonElement } from "../types";
+import { DEFAULT_MY_SIDEBAR_SETTINGS, RibbonSettings } from "../../settings";
+import { getElementSvgIcon } from "../../utils/icon";
 
 export class RibbonFeature {
     app: App;
     plugin: AssistantPlugin;
-    ribbonActions: HTMLElement;
-    ribbonSettings: HTMLElement;
-    observer: MutationObserver;
+    ribbonActions: HTMLElement | null = null;
+    ribbonSettings: HTMLElement | null = null;
+    observer: MutationObserver | null = null;
 
     // Debounce timer for observer
     private observerTimer: number | null = null;
+    private initTimer: number | null = null;
     private isInternalChange = false;
+    private isLoaded = false;
+    private loadGeneration = 0;
+    private originalPlacements = new Map<HTMLElement, { parent: HTMLElement, nextSibling: ChildNode | null, marker: Comment }>();
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app;
@@ -19,27 +25,44 @@ export class RibbonFeature {
     }
 
     get settings(): RibbonSettings {
+        if (!this.plugin.settings.mySideBar.ribbon) {
+            this.plugin.settings.mySideBar.ribbon = {
+                ...DEFAULT_MY_SIDEBAR_SETTINGS.ribbon,
+                elements: {}
+            };
+        }
         return this.plugin.settings.mySideBar.ribbon;
     }
 
     async onload() {
-        if (!this.plugin.settings.mySideBar?.ribbon) {
-            if (!this.plugin.settings.mySideBar) {
-                // @ts-ignore
-                this.plugin.settings.mySideBar = {};
-            }
-            this.plugin.settings.mySideBar.ribbon = { elements: {} };
-            await this.plugin.saveSettings();
-        }
+        if (this.isLoaded || !this.settings.enabled) return;
+        this.isLoaded = true;
+        const generation = ++this.loadGeneration;
 
-        this.app.workspace.onLayoutReady(() => {
+        const runInit = () => {
+            if (generation !== this.loadGeneration) return;
+            if (!this.isLoaded) return;
             this.init();
-        });
+        };
+
+        if (this.app.workspace.layoutReady) runInit();
+        else this.app.workspace.onLayoutReady(runInit);
     }
 
     onunload() {
+        this.isLoaded = false;
+        this.loadGeneration++;
+        if (this.initTimer !== null) {
+            window.clearTimeout(this.initTimer);
+            this.initTimer = null;
+        }
+        if (this.observerTimer !== null) {
+            window.clearTimeout(this.observerTimer);
+            this.observerTimer = null;
+        }
         if (this.observer) {
             this.observer.disconnect();
+            this.observer = null;
         }
 
         const resetEl = (el: HTMLElement) => {
@@ -48,11 +71,17 @@ export class RibbonFeature {
             el.removeClass("assistant-ribbon-hidden");
         };
 
+        this.ribbonActions?.removeClass("assistant-ribbon-loading");
         if (this.ribbonActions) Array.from(this.ribbonActions.children).forEach(el => resetEl(el as HTMLElement));
         if (this.ribbonSettings) Array.from(this.ribbonSettings.children).forEach(el => resetEl(el as HTMLElement));
+        this.restoreOriginalPlacements();
+        this.ribbonActions = null;
+        this.ribbonSettings = null;
     }
 
     private init() {
+        if (!this.isLoaded) return;
+        if (this.initTimer !== null || this.observer !== null) return;
         const ribbon = document.querySelector(".workspace-ribbon.mod-left");
         if (!ribbon) return;
 
@@ -62,7 +91,7 @@ export class RibbonFeature {
         if (!this.ribbonActions && !this.ribbonSettings) return;
 
         // Initial process - HIDING
-        this.ribbonActions.addClass("assistant-ribbon-loading");
+        this.ribbonActions?.addClass("assistant-ribbon-loading");
 
         // Determine delay
         const configuredDelay = this.plugin.settings.mySideBar.ribbon.ribbonDisplayDelay || 1000;
@@ -70,7 +99,7 @@ export class RibbonFeature {
 
         if (this.plugin.settings.myPlugins.enabled) {
             // Lazy Load Logic
-            const deviceSettings = this.plugin.settings.myPlugins.dualConfigs && (this.app as any).isMobile
+            const deviceSettings = this.plugin.settings.myPlugins.dualConfigs && Platform.isMobile
                 ? (this.plugin.settings.myPlugins.mobile || this.plugin.settings.myPlugins.desktop)
                 : this.plugin.settings.myPlugins.desktop;
 
@@ -82,9 +111,12 @@ export class RibbonFeature {
         }
 
         // Set timeout to reveal
-        setTimeout(async () => {
+        this.initTimer = window.setTimeout(async () => {
+            this.initTimer = null;
+            if (!this.isLoaded) return;
             await this.processRibbon();
-            this.ribbonActions.removeClass("assistant-ribbon-loading");
+            if (!this.isLoaded) return;
+            this.ribbonActions?.removeClass("assistant-ribbon-loading");
 
             // Start observing both AFTER initial load is done
             this.observer = new MutationObserver((mutations) => {
@@ -103,6 +135,7 @@ export class RibbonFeature {
                 }
             });
 
+            if (!this.isLoaded) return;
             if (this.ribbonActions) this.observer.observe(this.ribbonActions, { childList: true });
             if (this.ribbonSettings) this.observer.observe(this.ribbonSettings, { childList: true });
 
@@ -112,17 +145,19 @@ export class RibbonFeature {
     }
 
     private scheduleProcess() {
+        if (!this.isLoaded) return;
         if (this.observerTimer !== null) {
             window.clearTimeout(this.observerTimer);
         }
         this.observerTimer = window.setTimeout(() => {
-            this.processRibbon();
+            if (!this.isLoaded) return;
+            void this.processRibbon().catch(e => console.error("Assistant: Failed to process ribbon", e));
             this.observerTimer = null;
         }, 200);
     }
 
     async processRibbon() {
-        if (!this.ribbonActions && !this.ribbonSettings) return;
+        if (!this.isLoaded || (!this.ribbonActions && !this.ribbonSettings)) return;
 
         // Gather current DOM elements from both lists
         const actionsChildren = this.ribbonActions ? Array.from(this.ribbonActions.children) as HTMLElement[] : [];
@@ -162,13 +197,13 @@ export class RibbonFeature {
                     name: id,
                     visible: true,
                     order: maxOrder,
-                    icon: el.querySelector("svg")?.outerHTML || el.innerHTML
+                    icon: getElementSvgIcon(el)
                 };
                 settingsElements[id] = newEl;
                 changed = true;
             } else {
                 // Update icon
-                const icon = el.querySelector("svg")?.outerHTML || el.innerHTML;
+                const icon = getElementSvgIcon(el);
                 if (icon && settingsElements[id].icon !== icon) {
                     settingsElements[id].icon = icon;
                     changed = true;
@@ -179,43 +214,35 @@ export class RibbonFeature {
         // 3. Apply Order and Visibility
         this.isInternalChange = true;
 
-        // We will move all managed elements to the top 'ribbonActions' container to create a unified list
-        // EXCEPT for the 'Settings' and 'Help' buttons which are usually in the bottom 'ribbonSettings' container.
-        // Moving them might be confusing or break native behavior expectations.
-        // However, the user wants a single unified sortable list. 
-        // If we want to support that, we MUST move them to the same container.
-        // Let's check if the user has explicitly reordered them.
-        // If we move Settings/Help to top, they become just like any other button. 
-        // This is often a desired feature (e.g. "Commander" allows this).
-        // Let's implement full unification: Move everything to ribbonActions if it's managed.
+        try {
+            // We will move all managed elements to the top 'ribbonActions' container to create a unified list.
+            // Original DOM positions are remembered so unloading the feature restores Obsidian's structure.
 
-        const sortedIDs = Object.keys(settingsElements).sort((a, b) => settingsElements[a].order - settingsElements[b].order);
+            const sortedIDs = Object.keys(settingsElements).sort((a, b) => settingsElements[a].order - settingsElements[b].order);
 
-        for (const id of sortedIDs) {
-            const setting = settingsElements[id];
-            const el = domElementsMap.get(id);
-            if (el) {
-                // Determine visibility
-                if (setting.visible) {
-                    el.style.setProperty("display", "flex", "important");
-                    el.removeClass("assistant-ribbon-hidden");
-                } else {
-                    el.style.setProperty("display", "none", "important");
-                    el.addClass("assistant-ribbon-hidden");
-                }
+            for (const id of sortedIDs) {
+                const setting = settingsElements[id];
+                const el = domElementsMap.get(id);
+                if (el) {
+                    // Determine visibility
+                    if (setting.visible) {
+                        el.style.setProperty("display", "flex", "important");
+                        el.removeClass("assistant-ribbon-hidden");
+                    } else {
+                        el.style.setProperty("display", "none", "important");
+                        el.addClass("assistant-ribbon-hidden");
+                    }
 
-                // Apply Order (Physical DOM order)
-                if (this.ribbonActions && el.parentElement !== this.ribbonActions) {
-                    this.ribbonActions.appendChild(el);
-                }
-                // If already in ribbonActions, appending it again moves it to the end, effectively sorting it if we loop in order.
-                if (this.ribbonActions) {
-                    this.ribbonActions.appendChild(el);
+                    // Apply Order (Physical DOM order)
+                    if (this.ribbonActions) {
+                        this.rememberPlacement(el);
+                        this.ribbonActions.appendChild(el);
+                    }
                 }
             }
+        } finally {
+            this.isInternalChange = false;
         }
-
-        this.isInternalChange = false;
 
         if (changed) {
             await this.plugin.saveSettings();
@@ -238,5 +265,44 @@ export class RibbonFeature {
         });
         await this.plugin.saveSettings();
         await this.processRibbon();
+    }
+
+    refreshAfterSoftStartup() {
+        if (!this.isLoaded) return;
+        if (this.initTimer !== null) return;
+        if (!this.ribbonActions && !this.ribbonSettings) this.init();
+        else this.scheduleProcess();
+    }
+
+    private rememberPlacement(el: HTMLElement) {
+        if (this.originalPlacements.has(el) || !el.parentElement) return;
+        const parent = el.parentElement;
+        const marker = document.createComment("obsidian-assistant-ribbon-placement");
+        parent.insertBefore(marker, el);
+        this.originalPlacements.set(el, {
+            parent,
+            nextSibling: el.nextSibling,
+            marker
+        });
+    }
+
+    private restoreOriginalPlacements() {
+        this.originalPlacements.forEach((placement, el) => {
+            if (!el.isConnected) {
+                placement.marker.remove();
+                return;
+            }
+
+            if (placement.marker.parentNode) {
+                placement.marker.parentNode.insertBefore(el, placement.marker);
+                placement.marker.remove();
+                return;
+            }
+
+            if (!placement.parent.isConnected || !el.isConnected) return;
+            const nextSibling = placement.nextSibling?.parentNode === placement.parent ? placement.nextSibling : null;
+            placement.parent.insertBefore(el, nextSibling);
+        });
+        this.originalPlacements.clear();
     }
 }

@@ -5,6 +5,7 @@ import { SidebarTabElement, SidebarBinding } from "../settings";
 import { RibbonElement } from "./types";
 import { DEFAULT_MY_SIDEBAR_SETTINGS } from "../settings";
 import { GroupModal } from "./group-modal";
+import { renderIconLike } from "../utils/icon";
 
 export function renderSidebarSettings(containerEl: HTMLElement, manager: SidebarManager) {
     // 1. Auto Hide Sub-menu
@@ -16,8 +17,8 @@ export function renderSidebarSettings(containerEl: HTMLElement, manager: Sidebar
             if (!manager.plugin.settings.mySideBar.autoHide) manager.plugin.settings.mySideBar.autoHide = { ...DEFAULT_MY_SIDEBAR_SETTINGS.autoHide };
             manager.plugin.settings.mySideBar.autoHide.enabled = enabled;
             await manager.plugin.saveSettings();
-            if (enabled) manager.autoHideFeature.load();
-            else manager.autoHideFeature.unload();
+            if (enabled) manager.autoHideFeature.onload();
+            else manager.autoHideFeature.onunload();
         },
         (contentEl) => {
             renderAutoHideSettings(contentEl, manager);
@@ -50,7 +51,13 @@ export function renderSidebarSettings(containerEl: HTMLElement, manager: Sidebar
             if (!manager.plugin.settings.mySideBar.tabs) manager.plugin.settings.mySideBar.tabs = { ...DEFAULT_MY_SIDEBAR_SETTINGS.tabs };
             manager.plugin.settings.mySideBar.tabs.enabled = enabled;
             await manager.plugin.saveSettings();
-            if (enabled) await manager.tabsFeature.onload();
+            if (enabled) {
+                await manager.tabsFeature.onload();
+                manager.contextualFeature.onload();
+            } else {
+                manager.contextualFeature.onunload();
+                manager.tabsFeature.onunload();
+            }
         },
         (contentEl) => {
             renderSidebarTabsSettings(contentEl, manager);
@@ -130,7 +137,7 @@ function renderAutoHideSettings(containerEl: HTMLElement, manager: SidebarManage
         .setDesc(t("When enabled, sidebars will slide over the main content without affecting the layout. When disabled, sidebars will expand by pushing content."))
         .addToggle((t) => t.setValue(settings.overlayMode).onChange(async (v) => {
             settings.overlayMode = v;
-            document.body.toggleClass("obsidian-assistant-overlay-mode", v);
+            document.body.toggleClass("sidebar-overlay-mode", v);
             await plugin.saveSettings();
         }));
 
@@ -170,7 +177,7 @@ function renderAutoHideSettings(containerEl: HTMLElement, manager: SidebarManage
         .setName(t("Expand/collapse animation speed"))
         .setDesc(t("The speed of the sidebar expand/collapse animation in milliseconds."))
         .addText(text => text.setValue(String(settings.expandCollapseSpeed)).onChange(async v => {
-            const num = parseInt(v); if (!isNaN(num) && num > 0) { settings.expandCollapseSpeed = num; await plugin.saveSettings(); }
+            const num = parseInt(v); if (!isNaN(num) && num > 0) { settings.expandCollapseSpeed = num; manager.autoHideFeature.updateCSSVariables(); await plugin.saveSettings(); }
         }));
 
     new Setting(containerEl).setName(t("Appearance")).setHeading();
@@ -179,14 +186,14 @@ function renderAutoHideSettings(containerEl: HTMLElement, manager: SidebarManage
         .setName(t("Left sidebar maximum width"))
         .setDesc(t("Specify the maximum width in pixels for the left sidebar when expanded"))
         .addText(text => text.setValue(String(settings.leftSidebarMaxWidth)).onChange(async v => {
-            const num = parseInt(v); if (!isNaN(num) && num > 0) { settings.leftSidebarMaxWidth = num; await plugin.saveSettings(); }
+            const num = parseInt(v); if (!isNaN(num) && num > 0) { settings.leftSidebarMaxWidth = num; manager.autoHideFeature.updateCSSVariables(); await plugin.saveSettings(); }
         }));
 
     new Setting(containerEl)
         .setName(t("Right sidebar maximum width"))
         .setDesc(t("Specify the maximum width in pixels for the right sidebar when expanded"))
         .addText(text => text.setValue(String(settings.rightSidebarMaxWidth)).onChange(async v => {
-            const num = parseInt(v); if (!isNaN(num) && num > 0) { settings.rightSidebarMaxWidth = num; await plugin.saveSettings(); }
+            const num = parseInt(v); if (!isNaN(num) && num > 0) { settings.rightSidebarMaxWidth = num; manager.autoHideFeature.updateCSSVariables(); await plugin.saveSettings(); }
         }));
 }
 
@@ -250,7 +257,7 @@ function renderRibbonRow(container: HTMLElement, el: RibbonElement, manager: Sid
     nameContainer.style.gap = "8px";
     if (el.icon) {
         const iconSpan = nameContainer.createEl("span");
-        iconSpan.innerHTML = el.icon;
+        renderIconLike(iconSpan, el.icon);
         const svg = iconSpan.querySelector("svg");
         if (svg) { svg.setAttribute("width", "16"); svg.setAttribute("height", "16"); svg.style.verticalAlign = "middle"; }
     }
@@ -366,7 +373,9 @@ function renderTabGroup(container: HTMLElement, title: string, groupElements: Si
     heading.style.color = "var(--text-success)";
 
     if (groupElements.length === 0) {
-        container.createEl("div", { text: t("No elements"), cls: "setting-item-description", style: "margin-bottom: 20px; font-style: italic;" });
+        const emptyEl = container.createEl("div", { text: t("No elements"), cls: "setting-item-description" });
+        emptyEl.style.marginBottom = "20px";
+        emptyEl.style.fontStyle = "italic";
         return;
     }
 
@@ -409,20 +418,11 @@ function renderTabRow(container: HTMLElement, el: SidebarTabElement, manager: Si
         iconSpan.style.flexShrink = "0";
         iconSpan.style.alignSelf = "center"; // Fix vertical alignment
 
-        if (iconToUse.startsWith("<svg") || iconToUse.includes("xmlns")) {
-            iconSpan.innerHTML = iconToUse;
-            const svg = iconSpan.querySelector("svg");
-            if (svg) {
-                svg.setAttribute("width", "16");
-                svg.setAttribute("height", "16");
-            }
-        } else {
-            setIcon(iconSpan, iconToUse);
-            const svg = iconSpan.querySelector("svg");
-            if (svg) {
-                svg.setAttribute("width", "16");
-                svg.setAttribute("height", "16");
-            }
+        renderIconLike(iconSpan, iconToUse);
+        const svg = iconSpan.querySelector("svg");
+        if (svg) {
+            svg.setAttribute("width", "16");
+            svg.setAttribute("height", "16");
         }
     }
 

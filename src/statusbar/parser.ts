@@ -1,7 +1,8 @@
 export const ignoredClasses = [
     "mod-clickable",
     "status-bar-item",
-    "statusbar-organizer-hidden"
+    "statusbar-organizer-hidden",
+    "statusbar-organizer-element-hidden"
 ];
 
 import { StatusBarElement } from "./types";
@@ -21,7 +22,7 @@ export function getStatusBarElements(statusBar: Element): StatusBarElement[] {
         if (id == null) {
             name = Array
                 .from(element.classList)
-                .filter(x => !ignoredClasses.contains(x))
+                .filter(x => !ignoredClasses.includes(x))
                 .join('-');
 
             index =

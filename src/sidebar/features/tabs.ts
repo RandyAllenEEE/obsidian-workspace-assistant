@@ -36,11 +36,21 @@ type ScanOptions = {
     preserveHidden?: boolean;
 };
 
+type WorkspaceParentWithChildren = {
+    children?: unknown[];
+};
+
 export class SidebarTabsFeature {
     app: App;
     plugin: AssistantPlugin;
 
     scanTimer: number | null = null;
+    private isLoaded = false;
+    private refreshTimer: number | null = null;
+    private isRefreshing = false;
+    private refreshRequestId = 0;
+    private appliedRefreshId = 0;
+    private loadGeneration = 0;
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app;
@@ -48,22 +58,33 @@ export class SidebarTabsFeature {
     }
 
     async onload() {
-        if (!this.plugin.settings.mySideBar.tabs?.enabled) return;
+        if (this.isLoaded || !this.plugin.settings.mySideBar.tabs?.enabled) return;
+        this.isLoaded = true;
+        const generation = ++this.loadGeneration;
 
-        this.app.workspace.onLayoutReady(() => {
+        const scheduleScan = () => {
+            if (generation !== this.loadGeneration) return;
+            if (!this.isLoaded) return;
+            if (this.scanTimer !== null) return;
             // Initial delayed scan/apply to let other plugins load
             this.scanTimer = window.setTimeout(() => {
-                this.scanAndApply({ preserveHidden: true });
+                if (generation !== this.loadGeneration) return;
+                if (!this.isLoaded) return;
+                void this.scanAndApply({ preserveHidden: true }).catch(e => console.error("Assistant: Failed to scan sidebar tabs", e));
                 this.scanTimer = null;
             }, 1000);
-        });
+        };
+
+        if (this.app.workspace.layoutReady) scheduleScan();
+        else this.app.workspace.onLayoutReady(scheduleScan);
     }
 
     async scanAndApply(options: ScanOptions = {}) {
-        if (!this.plugin.settings.mySideBar.tabs.enabled) return;
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) return;
 
         // 1. Scan current tabs to populate settings with any new ones
         await this.scan(options);
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) return;
 
         // 2. Apply saved layout
         await this.applyLayout();
@@ -78,7 +99,7 @@ export class SidebarTabsFeature {
         const processSplit = (split: any, side: 'left' | 'right') => {
             if (!split) return;
             // Iterate all leaves within this sidebar split
-            this.app.workspace.iterateLeaves((leaf) => {
+            this.iterateLeavesInSplit(split, (leaf) => {
                 const viewType = leaf.view.getViewType();
                 // Ignore Contextual Slaves
                 if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") return;
@@ -142,7 +163,7 @@ export class SidebarTabsFeature {
                 }
 
                 order++;
-            }, split);
+            });
         };
 
         processSplit(this.app.workspace.leftSplit, 'left');
@@ -175,7 +196,7 @@ export class SidebarTabsFeature {
 
     async applyLayout() {
         const settings = this.plugin.settings.mySideBar.tabs;
-        if (!settings.enabled) return;
+        if (!this.isLoaded || !settings.enabled) return;
 
         const elements = Object.values(settings.elements);
         const leftItems = elements.filter(e => e.side === 'left' && e.visible).sort((a, b) => a.order - b.order);
@@ -186,10 +207,10 @@ export class SidebarTabsFeature {
         const getSplitIds = (split: any) => {
             if (!split) return [];
             const ids: string[] = [];
-            this.app.workspace.iterateLeaves((leaf) => {
+            this.iterateLeavesInSplit(split, (leaf) => {
                 if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") return;
                 ids.push(leaf.view.getViewType());
-            }, split);
+            });
             return ids;
         };
 
@@ -216,7 +237,7 @@ export class SidebarTabsFeature {
             if (isMatch) return; // Don't touch this side if it matches
             if (!split) return;
 
-            this.app.workspace.iterateLeaves((leaf) => {
+            this.iterateLeavesInSplit(split, (leaf) => {
                 const type = leaf.view.getViewType();
                 // If it's a managed type, we capture and detach.
                 // If it's unmanaged (new plugin appeared after scan?), we might detach it if we are strict.
@@ -225,25 +246,34 @@ export class SidebarTabsFeature {
                     viewStates[type] = leaf.getViewState();
                     leavesToDetach.push(leaf);
                 }
-            }, split);
+            });
         };
 
         // If Left mismatches, we rebuild Left. If Right mismatches, rebuild Right.
         processSide(this.app.workspace.leftSplit, isLeftMatch);
         processSide(this.app.workspace.rightSplit, isRightMatch);
 
+        if (!this.isLoaded || !settings.enabled) return;
         leavesToDetach.forEach(leaf => leaf.detach());
 
         // Rebuild only needed sides
+        if (!this.isLoaded || !settings.enabled) return;
         if (!isLeftMatch) await this.openInSplit(leftItems, 'left', viewStates);
+        if (!this.isLoaded || !settings.enabled) return;
         if (!isRightMatch) await this.openInSplit(rightItems, 'right', viewStates);
     }
 
     async openInSplit(items: SidebarTabElement[], side: 'left' | 'right', viewStates: { [id: string]: any }) {
         for (const item of items) {
-            let leaf: WorkspaceLeaf;
-            if (side === 'left') leaf = this.app.workspace.getLeftLeaf(false);
-            else leaf = this.app.workspace.getRightLeaf(false);
+            if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) return;
+            const leaf = side === 'left'
+                ? this.app.workspace.getLeftLeaf(false)
+                : this.app.workspace.getRightLeaf(false);
+
+            if (!leaf) {
+                console.error(`Assistant: Failed to create ${side} sidebar leaf for ${item.id}`);
+                continue;
+            }
 
             let state = viewStates[item.id];
             if (!state) {
@@ -253,6 +283,10 @@ export class SidebarTabsFeature {
 
             try {
                 await leaf.setViewState(state);
+                if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) {
+                    leaf.detach();
+                    return;
+                }
             } catch (e) {
                 console.error(`Assistant: Failed to restore tab ${item.id}`, e);
                 leaf.detach();
@@ -293,9 +327,78 @@ export class SidebarTabsFeature {
     }
 
     onunload() {
+        this.isLoaded = false;
+        this.loadGeneration++;
         if (this.scanTimer) {
             window.clearTimeout(this.scanTimer);
             this.scanTimer = null;
         }
+        if (this.refreshTimer !== null) {
+            window.clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+        this.isRefreshing = false;
+        this.refreshRequestId = 0;
+        this.appliedRefreshId = 0;
+    }
+
+    refreshAfterSoftStartup() {
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) return;
+        this.refreshRequestId++;
+        if (this.isRefreshing) {
+            return;
+        }
+        if (this.refreshTimer !== null) {
+            window.clearTimeout(this.refreshTimer);
+        }
+        this.refreshTimer = window.setTimeout(() => {
+            this.refreshTimer = null;
+            void this.runSoftStartupRefresh().catch(e => console.error("Assistant: Failed to refresh sidebar tabs", e));
+        }, 250);
+    }
+
+    private async runSoftStartupRefresh() {
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) return;
+
+        if (this.isRefreshing) {
+            return;
+        }
+
+        this.isRefreshing = true;
+
+        try {
+            while (
+                this.appliedRefreshId < this.refreshRequestId &&
+                this.isLoaded &&
+                this.plugin.settings.mySideBar.tabs.enabled
+            ) {
+                this.appliedRefreshId = this.refreshRequestId;
+                await this.scanAndApply({ preserveHidden: true });
+            }
+        } finally {
+            this.isRefreshing = false;
+            if (
+                this.appliedRefreshId < this.refreshRequestId &&
+                this.isLoaded &&
+                this.plugin.settings.mySideBar.tabs.enabled
+            ) {
+                void this.runSoftStartupRefresh().catch(e => console.error("Assistant: Failed to refresh sidebar tabs", e));
+            }
+        }
+    }
+
+    private iterateLeavesInSplit(split: unknown, callback: (leaf: WorkspaceLeaf) => void) {
+        const visit = (item: unknown) => {
+            const maybeLeaf = item as Partial<WorkspaceLeaf>;
+            if (maybeLeaf.view && typeof maybeLeaf.view.getViewType === "function") {
+                callback(maybeLeaf as WorkspaceLeaf);
+                return;
+            }
+
+            const parent = item as WorkspaceParentWithChildren;
+            parent.children?.forEach(child => visit(child));
+        };
+
+        visit(split);
     }
 }

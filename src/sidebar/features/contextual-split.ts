@@ -1,6 +1,11 @@
 import { App, WorkspaceLeaf, WorkspaceItem, setIcon, debounce, EventRef } from "obsidian";
 import AssistantPlugin from "../../main";
 import { SidebarBinding } from "../../settings";
+import { renderIconLike } from "../../utils/icon";
+
+type WorkspaceParentWithChildren = {
+    children?: unknown[];
+};
 
 export class ContextualSplitFeature {
     app: App;
@@ -13,6 +18,8 @@ export class ContextualSplitFeature {
     private activeBindings: Map<'left' | 'right', SidebarBinding> = new Map();
     private listeners: EventRef[] = [];
     private observer: MutationObserver | null = null;
+    private isLoaded = false;
+    private loadGeneration = 0;
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app;
@@ -20,16 +27,19 @@ export class ContextualSplitFeature {
     }
 
     onload() {
-        if (this.listeners.length > 0) {
-            this.onunload();
-        }
+        if (this.isLoaded) return;
+        this.isLoaded = true;
+        const generation = ++this.loadGeneration;
 
         // MutationObserver to automatically apply styles when tabs are rendered
         this.observer = new MutationObserver(debounce(() => {
+            if (!this.isLoaded) return;
             this.applyAllMasquerades();
         }, 50));
 
         const runInit = () => {
+            if (generation !== this.loadGeneration) return;
+            if (!this.isLoaded) return;
             this.cleanOrphans();
             // observe left and right splits
             const leftSplit = this.app.workspace.leftSplit;
@@ -56,6 +66,7 @@ export class ContextualSplitFeature {
         // Re-apply masquerade and check validity on layout changes
         this.listeners.push(
             this.app.workspace.on('layout-change', debounce(() => {
+                if (!this.isLoaded) return;
                 this.applyAllMasquerades();
                 this.checkActiveBindingValidity();
             }, 200))
@@ -63,18 +74,21 @@ export class ContextualSplitFeature {
 
         this.listeners.push(
             this.app.workspace.on('resize', debounce(() => {
+                if (!this.isLoaded) return;
                 this.saveSplitState();
             }, 500))
         );
 
         this.listeners.push(
             this.app.workspace.on('active-leaf-change', debounce((leaf) => {
-                if (leaf) this.handleActiveLeaf(leaf);
+                if (this.isLoaded && leaf) this.handleActiveLeaf(leaf);
             }, 50, true))
         );
     }
 
     onunload() {
+        this.isLoaded = false;
+        this.loadGeneration++;
         this.listeners.forEach(ref => this.app.workspace.offref(ref));
         this.listeners = [];
 
@@ -84,8 +98,8 @@ export class ContextualSplitFeature {
         }
 
         // Cleanup all active splits
-        this.activeBindings.forEach(binding => {
-            this.cleanupSplit(binding);
+        this.activeBindings.forEach((binding, side) => {
+            this.cleanupSplit(binding, side);
         });
         this.activeBindings.clear();
         // Restore all visuals
@@ -100,12 +114,15 @@ export class ContextualSplitFeature {
         const removeOrphans = (split: any) => {
             if (!split) return;
             const toDetach: WorkspaceLeaf[] = [];
-            (this.app.workspace as any).iterateLeaves((leaf: WorkspaceLeaf) => {
+            this.iterateLeavesInSplit(split, (leaf: WorkspaceLeaf) => {
                 if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
                     toDetach.push(leaf);
                 }
-            }, split);
-            toDetach.forEach(l => l.detach());
+            });
+            toDetach.forEach(l => {
+                this.removeHiddenHeader(l);
+                l.detach();
+            });
         };
         removeOrphans(this.app.workspace.leftSplit);
         removeOrphans(this.app.workspace.rightSplit);
@@ -160,7 +177,7 @@ export class ContextualSplitFeature {
         if (matchingBinding) {
             // Activate Split (Focused on Master)
             if (currentActive && currentActive !== matchingBinding) {
-                await this.cleanupSplit(currentActive);
+                await this.cleanupSplit(currentActive, side);
             }
             this.activeBindings.set(side, matchingBinding);
             await this.activateSplit(leaf, matchingBinding);
@@ -180,7 +197,7 @@ export class ContextualSplitFeature {
                     return; // Master is visible, keep split open
                 }
 
-                await this.cleanupSplit(currentActive);
+                await this.cleanupSplit(currentActive, side);
                 this.activeBindings.delete(side);
             }
         }
@@ -197,7 +214,7 @@ export class ContextualSplitFeature {
             for (const binding of bindings) {
                 if (this.isMasterVisible(binding.masterId, side)) {
                     if (currentActive !== binding) {
-                        if (currentActive) this.cleanupSplit(currentActive);
+                        if (currentActive) this.cleanupSplit(currentActive, side);
 
                         this.activeBindings.set(side, binding);
                         const leaves = this.findLeavesByType(binding.masterId);
@@ -212,7 +229,7 @@ export class ContextualSplitFeature {
 
             // 2. If no Master is visible on this side, cleanup
             if (currentActive) {
-                this.cleanupSplit(currentActive);
+                this.cleanupSplit(currentActive, side);
                 this.activeBindings.delete(side);
             }
         });
@@ -229,13 +246,7 @@ export class ContextualSplitFeature {
 
     saveSplitState() {
         this.activeBindings.forEach((binding, side) => {
-            const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
-            // We need to ensure this slave leaf belongs to the split we are tracking?
-            // Since findUniqueSlaveLeaf scans both sides, it might return the wrong one 
-            // if both sides have same slave type (unlikely but possible).
-            // But since 'slaveId' usually is unique per binding, and we assume 
-            // user doesn't bind same slave ID to multiple things differently...
-            // Let's rely on checking the side of the found slave leaf.
+            const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
 
             if (slaveLeaf) {
                 const slaveSide = this.getLeafSide(slaveLeaf);
@@ -262,11 +273,24 @@ export class ContextualSplitFeature {
 
     async activateSplit(masterLeaf: WorkspaceLeaf, binding: SidebarBinding) {
         // Only handles the split logic now, visual is handled globally
-        let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
+        const side = this.getLeafSide(masterLeaf);
+        if (side === 'unknown') return;
+
+        let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
 
         if (!slaveLeaf) {
             slaveLeaf = this.app.workspace.createLeafBySplit(masterLeaf, 'horizontal');
-            await slaveLeaf.setViewState({ type: binding.slaveId });
+            try {
+                await slaveLeaf.setViewState({ type: binding.slaveId });
+            } catch (e) {
+                console.error("Assistant: Failed to create contextual split slave", e);
+                slaveLeaf.detach();
+                return;
+            }
+            if (!this.isLoaded) {
+                slaveLeaf.detach();
+                return;
+            }
             slaveLeaf.view.containerEl.dataset.assistantContextualSlave = "true";
         }
 
@@ -295,7 +319,7 @@ export class ContextualSplitFeature {
                                 (sibling as any).setDimension(100 - dim);
                             }
                         } catch (e) {
-                            console.error("Assistant Assistant: Failed to set split dimension", e);
+                            console.error("Assistant: Failed to set split dimension", e);
                         }
                     } else {
                         // Fallback if no sibling found
@@ -304,7 +328,7 @@ export class ContextualSplitFeature {
                                 (parent as any).setDimension(dim);
                             }
                         } catch (e) {
-                            console.error("Assistant Assistant: Failed to set split dimension (fallback)", e);
+                            console.error("Assistant: Failed to set split dimension (fallback)", e);
                         }
                     }
                 }
@@ -312,14 +336,20 @@ export class ContextualSplitFeature {
         }
     }
 
-    async cleanupSplit(binding: SidebarBinding) {
+    async cleanupSplit(binding: SidebarBinding, side?: 'left' | 'right') {
         // Only closes the slave split
-        const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
+        const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
         if (slaveLeaf) {
             if (slaveLeaf.view.containerEl.dataset.assistantContextualSlave === "true") {
+                this.removeHiddenHeader(slaveLeaf);
                 slaveLeaf.detach();
             }
         }
+    }
+
+    private removeHiddenHeader(leaf: WorkspaceLeaf) {
+        const parent = (leaf as any).parent;
+        parent?.containerEl?.removeClass('contextual-split-hidden-header');
     }
 
     findLeavesByType(type: string): WorkspaceLeaf[] {
@@ -330,19 +360,35 @@ export class ContextualSplitFeature {
         return leaves;
     }
 
-    findUniqueSlaveLeaf(type: string): WorkspaceLeaf | null {
+    findUniqueSlaveLeaf(type: string, side?: 'left' | 'right'): WorkspaceLeaf | null {
         let found: WorkspaceLeaf | null = null;
         const checkSplit = (split: any) => {
             if (!split) return;
-            (this.app.workspace as any).iterateLeaves((l: WorkspaceLeaf) => {
+            this.iterateLeavesInSplit(split, (l: WorkspaceLeaf) => {
+                if (side && this.getLeafSide(l) !== side) return;
                 if (l.view.getViewType() === type && l.view.containerEl.dataset.assistantContextualSlave === "true") {
                     found = l;
                 }
-            }, split);
+            });
         };
         checkSplit(this.app.workspace.leftSplit);
         checkSplit(this.app.workspace.rightSplit);
         return found;
+    }
+
+    private iterateLeavesInSplit(split: unknown, callback: (leaf: WorkspaceLeaf) => void) {
+        const visit = (item: unknown) => {
+            const maybeLeaf = item as Partial<WorkspaceLeaf>;
+            if (maybeLeaf.view && typeof maybeLeaf.view.getViewType === "function") {
+                callback(maybeLeaf as WorkspaceLeaf);
+                return;
+            }
+
+            const parent = item as WorkspaceParentWithChildren;
+            parent.children?.forEach(child => visit(child));
+        };
+
+        visit(split);
     }
 
     applyVisualOverride(leaf: WorkspaceLeaf, binding: SidebarBinding) {
@@ -376,18 +422,7 @@ export class ContextualSplitFeature {
                 if (binding.groupSvg && binding.groupSvg.trim().length > 0) {
                     const iconEl = header.querySelector('.workspace-tab-header-inner-icon');
                     if (iconEl) {
-                        const val = binding.groupSvg.trim();
-                        // Check if it looks like SVG code
-                        if (val.startsWith('<svg')) {
-                            iconEl.empty();
-                            iconEl.innerHTML = val;
-                        } else {
-                            // Fallback to Lucide name if it's not SVG code AND looks safe (no HTML tags)
-                            if (!val.includes('<') && !val.includes('>')) {
-                                iconEl.empty();
-                                setIcon(iconEl as HTMLElement, val);
-                            }
-                        }
+                        renderIconLike(iconEl as HTMLElement, binding.groupSvg, "box");
                     }
                 }
 

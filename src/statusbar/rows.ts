@@ -5,6 +5,12 @@ import { t } from "../i18n/helpers";
 
 let dragging: boolean;
 
+function cloneChildren(source: Element, target: Element) {
+    Array.from(source.childNodes).forEach(child => {
+        target.appendChild(child.cloneNode(true));
+    });
+}
+
 /**
  * Set up the rows in the settings menu.
  * 
@@ -76,7 +82,7 @@ export async function initializeRows(plugin: StatusBarManager, settingsContainer
         const previewSpan = document.createElement("span");
         previewSpan.addClass("statusbar-organizer-row-preview");
         if (currentExists) {
-            previewSpan.innerHTML = (row.element as Element).innerHTML;
+            cloneChildren(row.element as Element, previewSpan);
         }
         entry.appendChild(previewSpan);
 
@@ -171,7 +177,7 @@ function cloneRow(
     for (const child of Array.from(realEntry.children)) {
         const fauxSpan = document.createElement("span");
         fauxSpan.className = child.className;
-        fauxSpan.innerHTML = child.innerHTML;
+        cloneChildren(child, fauxSpan);
         fauxEntry.appendChild(fauxSpan);
     }
 
@@ -266,7 +272,7 @@ function handleMouseDown(
 
     //  Handle dragging
     function handleMouseMove(event: MouseEvent) {
-        plugin.spooler.disableObserver();
+        plugin.spooler?.disableObserver();
 
         const newIndex = calculateRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index);
         if (newIndex != index) {
@@ -274,7 +280,7 @@ function handleMouseDown(
             index = newIndex;
         }
 
-        plugin.spooler.enableObserver();
+        plugin.spooler?.enableObserver();
     }
 
     window.addEventListener('mousemove', handleMouseMove);

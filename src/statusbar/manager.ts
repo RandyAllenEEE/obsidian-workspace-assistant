@@ -6,13 +6,22 @@ import { fixOrder } from "./organizer";
 import { BarStatus, ExistsStatus, StatusBarElement, StatusBarElementStatus } from "./types";
 import { getStatusBarElements, parseElementId } from "./parser";
 
+type StatusBarElementSnapshot = {
+    order: string;
+    hadHiddenClass: boolean;
+};
+
+const HIDDEN_ELEMENT_CLASS = "statusbar-organizer-element-hidden";
+
 export class StatusBarManager {
     app: App;
     plugin: AssistantPlugin;
     settings: StatusBarOrganizerSettings;
     statusBar: HTMLElement | undefined;
-    spooler: Spooler;
+    spooler: Spooler | null = null;
     private isLoaded = false;
+    private loadGeneration = 0;
+    private elementSnapshots = new Map<HTMLElement, StatusBarElementSnapshot>();
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app;
@@ -24,14 +33,16 @@ export class StatusBarManager {
     async onload() {
         if (this.isLoaded) return;
         this.isLoaded = true;
+        const generation = ++this.loadGeneration;
 
         // Find status bar
         this.statusBar = document.querySelector(".status-bar") as HTMLElement;
         if (!this.statusBar) {
             // Try again on layout ready just in case
             this.app.workspace.onLayoutReady(() => {
+                if (!this.isLoaded || generation !== this.loadGeneration) return;
                 this.statusBar = document.querySelector(".status-bar") as HTMLElement;
-                if (this.statusBar && this.isLoaded) this.initializeManager();
+                if (this.statusBar) this.initializeManager();
             });
             return;
         }
@@ -41,6 +52,8 @@ export class StatusBarManager {
 
     private initializeManager() {
         if (!this.statusBar) return;
+
+        if (this.spooler) this.spooler.dispose();
 
         // Initialize Spooler
         this.spooler = new Spooler(this, fixOrder);
@@ -54,9 +67,15 @@ export class StatusBarManager {
     onunload() {
         if (!this.isLoaded) return;
         this.isLoaded = false;
-        if (this.spooler) this.spooler.disableObserver();
-        // Reset order? Or just leave it?
-        // Original plugin didn't seem to reset order on unload.
+        this.loadGeneration++;
+        if (this.spooler) this.spooler.dispose();
+        this.spooler = null;
+        this.restoreManagedElementState();
+    }
+
+    refreshAfterSoftStartup() {
+        if (!this.isLoaded || !this.statusBar || !this.spooler) return;
+        this.spooler.spoolFix(0);
     }
 
     saveSettings() {
@@ -66,6 +85,23 @@ export class StatusBarManager {
     async saveStatus(currentBarStatus: BarStatus) {
         this.settings.status = currentBarStatus;
         await this.saveSettings();
+    }
+
+    rememberElementState(element: HTMLElement) {
+        if (this.elementSnapshots.has(element)) return;
+        this.elementSnapshots.set(element, {
+            order: element.style.order,
+            hadHiddenClass: element.hasClass(HIDDEN_ELEMENT_CLASS)
+        });
+    }
+
+    private restoreManagedElementState() {
+        this.elementSnapshots.forEach((snapshot, element) => {
+            if (!element.isConnected) return;
+            element.style.order = snapshot.order;
+            element.toggleClass(HIDDEN_ELEMENT_CLASS, snapshot.hadHiddenClass);
+        });
+        this.elementSnapshots.clear();
     }
 
     /**
@@ -135,7 +171,7 @@ export class StatusBarManager {
 
         // Save new order of elements (in particular of the previously unknown ones)
         await this.saveStatus(barStatus);
-        this.spooler.spoolFix(0);
+        this.spooler?.spoolFix(0);
 
         return {
             rows: rows,

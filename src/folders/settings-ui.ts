@@ -39,6 +39,7 @@ export function renderFoldersSettings(containerEl: HTMLElement, manager: Folders
                 settings.attachmentFolderNames = newSettingsValue;
                 await plugin.saveSettings();
                 await manager.updateObsidianIgnoreList();
+                manager.processFolders(true);
             }));
 
     new Setting(containerEl)
@@ -52,6 +53,7 @@ export function renderFoldersSettings(containerEl: HTMLElement, manager: Folders
                 settings.matchCaseInsensitive = value;
                 await plugin.saveSettings();
                 await manager.updateObsidianIgnoreList();
+                manager.processFolders(true);
             }));
 
     new Setting(containerEl)
@@ -64,7 +66,7 @@ export function renderFoldersSettings(containerEl: HTMLElement, manager: Folders
                 await plugin.saveSettings();
                 await manager.updateObsidianIgnoreList();
                 manager.updateUI();
-                manager.processFolders();
+                manager.processFolders(true);
             }));
 
     new Setting(containerEl)

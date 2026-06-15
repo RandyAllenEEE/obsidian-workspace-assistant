@@ -22,7 +22,3 @@ export interface RibbonElement {
     // Reference to DOM element for manipulation
     element?: HTMLElement;
 }
-
-export interface RibbonSettings {
-    elements: { [key: string]: RibbonElement };
-}

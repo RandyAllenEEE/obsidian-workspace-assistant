@@ -1,8 +1,26 @@
-import { App, debounce, setIcon } from "obsidian";
+import { App, debounce, EventRef, setIcon } from "obsidian";
 import AssistantPlugin from "../main";
 import { MyFoldersSettings } from "../settings";
 import { CompatQuickExplorer, getFolderNameWithoutPrefix } from "./compat";
 import { t } from "../i18n/helpers";
+import { LifecycleScope } from "../utils/lifecycle";
+
+type FolderStyleSnapshot = {
+    height: string;
+    display: string;
+    overflow: string;
+};
+
+const HIDDEN_FOLDER_CLASS = "obsidian-hide-folders--hidden";
+
+function escapeCssAttributeValue(value: string) {
+    return value
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\r/g, "\\D ")
+        .replace(/\n/g, "\\A ")
+        .replace(/\f/g, "\\C ");
+}
 
 export class FoldersManager {
     app: App;
@@ -10,7 +28,11 @@ export class FoldersManager {
     ribbonIconButton: HTMLElement | null = null;
     statusBarItem: HTMLElement | null = null;
     mutationObserver: MutationObserver | null = null;
-    private layoutChangeRef: any = null;
+    private layoutChangeRef: EventRef | null = null;
+    private renameEventRef: EventRef | null = null;
+    private scope = new LifecycleScope();
+    private folderStyleSnapshots = new Map<HTMLElement, FolderStyleSnapshot>();
+    private isLoaded = false;
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app;
@@ -22,16 +44,13 @@ export class FoldersManager {
     }
 
     public processFolders = debounce(async (recheckPreviouslyHiddenFolders?: boolean) => {
-        if (!this.settings.enabled) return;
-        if (this.settings.attachmentFolderNames.length === 0) return;
+        if (!this.isLoaded || !this.settings.enabled) return;
 
         if (recheckPreviouslyHiddenFolders) {
-            document.querySelectorAll<HTMLElement>(".obsidian-hide-folders--hidden").forEach((folder) => {
-                folder.style.height = "";
-                folder.style.overflow = "";
-                folder.removeClass("obsidian-hide-folders--hidden");
-            });
+            this.restoreProcessedFolders();
         }
+
+        if (this.settings.attachmentFolderNames.length === 0) return;
 
         this.settings.attachmentFolderNames.forEach(folderName => {
             if (getFolderNameWithoutPrefix(folderName) === "") return;
@@ -51,10 +70,15 @@ export class FoldersManager {
                         return;
                     }
 
-                    folder.addClass("obsidian-hide-folders--hidden");
-                    folder.style.height = this.settings.areFoldersHidden ? "0" : "";
-                    folder.style.display = this.settings.areFoldersHidden ? "none" : "";
-                    folder.style.overflow = this.settings.areFoldersHidden ? "hidden" : "";
+                    if (this.settings.areFoldersHidden) {
+                        this.rememberFolderStyles(folder);
+                        folder.addClass(HIDDEN_FOLDER_CLASS);
+                        folder.style.height = "0";
+                        folder.style.display = "none";
+                        folder.style.overflow = "hidden";
+                    } else if (this.folderStyleSnapshots.has(folder) || folder.hasClass(HIDDEN_FOLDER_CLASS)) {
+                        this.restoreFolder(folder);
+                    }
                 });
             } catch (e) {
                 console.error(`Failed to process folder ${folderName}:`, e);
@@ -63,12 +87,17 @@ export class FoldersManager {
     }, 100, false);
 
     getQuerySelectorStringForFolderName(folderName: string) {
+        const rawFolderName = folderName.trim();
+        const folderNameWithoutPrefix = getFolderNameWithoutPrefix(folderName);
+        const escapedRawFolderName = escapeCssAttributeValue(rawFolderName);
+        const escapedFolderNameWithoutPrefix = escapeCssAttributeValue(folderNameWithoutPrefix);
+
         if (folderName.toLowerCase().startsWith("endswith::")) {
-            return `*:has(> [data-path$="${getFolderNameWithoutPrefix(folderName)}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
+            return `*:has(> [data-path$="${escapedFolderNameWithoutPrefix}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
         } else if (folderName.toLowerCase().startsWith("startswith::")) {
-            return `*:has(> .nav-folder-title[data-path^="${getFolderNameWithoutPrefix(folderName)}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> .nav-folder-title[data-path*="/${getFolderNameWithoutPrefix(folderName)}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
+            return `*:has(> .nav-folder-title[data-path^="${escapedFolderNameWithoutPrefix}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> .nav-folder-title[data-path*="/${escapedFolderNameWithoutPrefix}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
         } else {
-            return `*:has(> [data-path$="/${folderName.trim()}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> [data-path="${folderName.trim()}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
+            return `*:has(> [data-path$="/${escapedRawFolderName}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> [data-path="${escapedRawFolderName}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
         }
     }
 
@@ -79,7 +108,7 @@ export class FoldersManager {
             setIcon(this.ribbonIconButton, this.settings.areFoldersHidden ? "eye" : "eye-off");
         }
         if (this.statusBarItem) {
-            this.statusBarItem.innerHTML = this.settings.areFoldersHidden ? t('Configured folders are hidden') : "";
+            this.statusBarItem.setText(this.settings.areFoldersHidden ? t('Configured folders are hidden') : "");
         }
         await this.processFolders();
         await this.plugin.saveSettings();
@@ -92,7 +121,7 @@ export class FoldersManager {
             setIcon(this.ribbonIconButton, this.settings.areFoldersHidden ? "eye" : "eye-off");
         }
         if (this.statusBarItem) {
-            this.statusBarItem.innerHTML = this.settings.areFoldersHidden ? t('Configured folders are hidden') : "";
+            this.statusBarItem.setText(this.settings.areFoldersHidden ? t('Configured folders are hidden') : "");
         }
     }
 
@@ -120,7 +149,7 @@ export class FoldersManager {
             this.settings.attachmentFolderNames.forEach(folderName => {
                 if (getFolderNameWithoutPrefix(folderName).trim() === "") return;
                 const regExp = this.createIgnoreListRegExpForFolderName(folderName);
-                if (ignoreList.contains(regExp)) return;
+                if (ignoreList.includes(regExp)) return;
                 ignoreList.push(regExp);
             });
         } else {
@@ -133,11 +162,14 @@ export class FoldersManager {
     }
 
     async removeSpecificFoldersFromObsidianIgnoreList(folderNames: string[]) {
-        folderNames.forEach(folderName => {
-            // @ts-ignore
-            this.app.vault.config.userIgnoreFilters?.remove(this.createIgnoreListRegExpForFolderName(folderName));
-            this.app.vault.trigger("config-changed");
-        });
+        const filtersToRemove = new Set(folderNames.map(folderName => this.createIgnoreListRegExpForFolderName(folderName)));
+        // @ts-ignore
+        const currentFilters = (this.app.vault.getConfig("userIgnoreFilters") ?? []) as string[];
+        const nextFilters = currentFilters.filter(filter => !filtersToRemove.has(filter));
+
+        // @ts-ignore
+        this.app.vault.setConfig("userIgnoreFilters", nextFilters);
+        this.app.vault.trigger("config-changed");
     }
 
     createBottomStatusBarIndicatorTextItem() {
@@ -148,10 +180,45 @@ export class FoldersManager {
         this.statusBarItem.setText(this.settings.areFoldersHidden ? t('Configured folders are hidden') : "");
     }
 
+    private scheduleProcessFolders(delay: number, recheckPreviouslyHiddenFolders?: boolean) {
+        this.scope.setTimer(() => {
+            if (!this.isLoaded) return;
+            this.processFolders(recheckPreviouslyHiddenFolders);
+        }, delay);
+    }
+
+    private rememberFolderStyles(folder: HTMLElement) {
+        if (this.folderStyleSnapshots.has(folder)) return;
+        this.folderStyleSnapshots.set(folder, {
+            height: folder.style.height,
+            display: folder.style.display,
+            overflow: folder.style.overflow
+        });
+    }
+
+    private restoreFolder(folder: HTMLElement) {
+        const snapshot = this.folderStyleSnapshots.get(folder);
+        folder.style.height = snapshot?.height ?? "";
+        folder.style.display = snapshot?.display ?? "";
+        folder.style.overflow = snapshot?.overflow ?? "";
+        folder.removeClass(HIDDEN_FOLDER_CLASS);
+        this.folderStyleSnapshots.delete(folder);
+    }
+
+    private restoreProcessedFolders() {
+        Array.from(this.folderStyleSnapshots.keys()).forEach((folder) => this.restoreFolder(folder));
+        document.querySelectorAll<HTMLElement>(`.${HIDDEN_FOLDER_CLASS}`).forEach((folder) => this.restoreFolder(folder));
+        this.folderStyleSnapshots.clear();
+    }
+
     async onload() {
+        if (this.isLoaded) return;
         if (!this.settings.enabled) return;
+        this.isLoaded = true;
+        this.scope.reset();
 
         console.log(t("Loading MyFolders module"));
+        const loadToken = this.scope.token();
 
         // Ribbon Icon
         this.ribbonIconButton = this.plugin.addRibbonIcon(
@@ -188,6 +255,10 @@ export class FoldersManager {
             if (!shouldTriggerProcessFolders) return;
             this.processFolders();
         });
+        this.scope.add(() => {
+            this.mutationObserver?.disconnect();
+            this.mutationObserver = null;
+        });
 
         // Optimization: Targeted observation
         this.observeFileExplorers();
@@ -197,27 +268,24 @@ export class FoldersManager {
             this.observeFileExplorers();
             this.processFolders();
         });
+        this.scope.event(this.app.workspace, this.layoutChangeRef);
 
         // Rename Event
         this.renameEventRef = this.app.vault.on("rename", () => {
-            window.setTimeout(() => {
-                this.processFolders();
-            }, 50); // Increased rename delay slightly
+            this.scheduleProcessFolders(50); // Increased rename delay slightly
         });
+        this.scope.event(this.app.vault, this.renameEventRef);
 
         // Optimization: Check layoutReady first
         if (this.app.workspace.layoutReady) {
             if (this.settings.areFoldersHidden) {
-                window.setTimeout(() => {
-                    this.processFolders();
-                }, 1000);
+                this.scheduleProcessFolders(1000);
             }
         } else {
             this.app.workspace.onLayoutReady(() => {
-                if (!this.settings.areFoldersHidden) return;
-                window.setTimeout(() => {
-                    this.processFolders();
-                }, 1000);
+                if (!this.scope.isCurrent(loadToken)) return;
+                if (!this.isLoaded || !this.settings.areFoldersHidden) return;
+                this.scheduleProcessFolders(1000);
             });
         }
     }
@@ -237,18 +305,11 @@ export class FoldersManager {
 
     onunload() {
         console.log(t("Unloading MyFolders module"));
-        this.mutationObserver?.disconnect();
-        this.mutationObserver = null;
-
-        if (this.renameEventRef) {
-            this.app.vault.offbyref(this.renameEventRef);
-            this.renameEventRef = null;
-        }
-
-        if (this.layoutChangeRef) {
-            this.app.workspace.offref(this.layoutChangeRef);
-            this.layoutChangeRef = null;
-        }
+        this.isLoaded = false;
+        this.scope.dispose();
+        this.renameEventRef = null;
+        this.layoutChangeRef = null;
+        this.restoreProcessedFolders();
 
         this.ribbonIconButton?.remove();
         this.ribbonIconButton = null;

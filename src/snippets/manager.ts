@@ -14,6 +14,11 @@ export class SnippetsManager {
     settings: MySnippetsSettings;
     statusBarIcon: HTMLElement | undefined;
     private isLoaded = false;
+    private statusBarSetupTimer: number | null = null;
+    private loadGeneration = 0;
+    private statusBarClickHandler = () => {
+        snippetsMenu(this.app, this, this.settings);
+    };
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app as EnhancedApp;
@@ -24,6 +29,7 @@ export class SnippetsManager {
     async onload() {
         if (this.isLoaded) return;
         this.isLoaded = true;
+        const generation = ++this.loadGeneration;
         console.log(t('Loading MySnippets module...'));
         addIcons();
 
@@ -32,9 +38,13 @@ export class SnippetsManager {
             this.setupSnippetsStatusBarIcon();
         } else {
             this.app.workspace.onLayoutReady(() => {
-                setTimeout(() => {
+                if (generation !== this.loadGeneration) return;
+                if (!this.isLoaded) return;
+                this.statusBarSetupTimer = window.setTimeout(() => {
+                    this.statusBarSetupTimer = null;
+                    if (generation !== this.loadGeneration) return;
                     this.setupSnippetsStatusBarIcon();
-                });
+                }, 0);
             });
         }
 
@@ -62,10 +72,14 @@ export class SnippetsManager {
     onunload() {
         if (!this.isLoaded) return;
         this.isLoaded = false;
+        this.loadGeneration++;
         console.log(t('Unloading MySnippets module...'));
+        if (this.statusBarSetupTimer !== null) {
+            window.clearTimeout(this.statusBarSetupTimer);
+            this.statusBarSetupTimer = null;
+        }
         if (this.statusBarIcon) {
-            this.statusBarIcon.remove();
-            this.statusBarIcon = undefined;
+            this.removeStatusBarIcon();
         }
 
         // We can't easily remove commands without access to app.commands.removeCommand which is private/internal.
@@ -73,10 +87,11 @@ export class SnippetsManager {
     }
 
     setupSnippetsStatusBarIcon() {
+        if (!this.isLoaded || !this.settings.enabled) return;
+
         if (!this.settings.showStatusBarIcon) {
             if (this.statusBarIcon) {
-                this.statusBarIcon.remove();
-                this.statusBarIcon = undefined;
+                this.removeStatusBarIcon();
             }
             return;
         }
@@ -93,13 +108,18 @@ export class SnippetsManager {
         });
         setIcon(this.statusBarIcon, "pantone-line");
 
-        this.plugin.registerDomEvent(this.statusBarIcon, "click", () => {
-            snippetsMenu(this.app, this, this.settings);
-        });
+        this.statusBarIcon.addEventListener("click", this.statusBarClickHandler);
     }
 
     updateStatusBar() {
         this.setupSnippetsStatusBarIcon();
+    }
+
+    private removeStatusBarIcon() {
+        if (!this.statusBarIcon) return;
+        this.statusBarIcon.removeEventListener("click", this.statusBarClickHandler);
+        this.statusBarIcon.remove();
+        this.statusBarIcon = undefined;
     }
 
     saveSettings() {

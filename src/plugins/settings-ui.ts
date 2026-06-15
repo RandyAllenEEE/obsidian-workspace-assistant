@@ -1,12 +1,14 @@
 import { DropdownComponent, Setting } from "obsidian";
 import { PluginsManager } from "./manager";
-import { LoadingMethod } from "../settings";
+import { isLoadingMethod, LoadingMethod } from "../settings";
 import { t } from "../i18n/helpers";
 
 export function renderPluginsSettings(containerEl: HTMLElement, manager: PluginsManager) {
     const view = new PluginsSettingsView(containerEl, manager);
     view.display();
 }
+
+type DelaySettingKey = "shortDelaySeconds" | "longDelaySeconds";
 
 class PluginsSettingsView {
     manager: PluginsManager;
@@ -38,24 +40,29 @@ class PluginsSettingsView {
                     .setValue(this.settings.dualConfigs)
                     .onChange(async (value) => {
                         this.settings.dualConfigs = value;
+                        await this.manager.refreshDeviceConfiguration();
                         await this.manager.plugin.saveSettings();
-                        await this.manager.onload();
+                        this.containerEl.empty();
+                        await this.display();
                     })
             });
 
         // Timers
-        Object.entries({
+        (Object.entries({
             shortDelaySeconds: t('Short delay (seconds)'),
             longDelaySeconds: t('Long delay (seconds)')
-        }).forEach(([key, name]) => {
+        }) as [DelaySettingKey, string][]).forEach(([key, name]) => {
             new Setting(containerEl)
                 .setName(name)
                 .addText(text => text
-                    // @ts-ignore
                     .setValue(this.manager.deviceSettings[key].toString())
                     .onChange(async (value) => {
-                        // @ts-ignore
-                        this.manager.deviceSettings[key] = parseFloat(parseFloat(value).toFixed(3));
+                        const parsed = Number(value);
+                        if (!Number.isFinite(parsed) || parsed < 0) {
+                            text.setValue(this.manager.deviceSettings[key].toString());
+                            return;
+                        }
+                        this.manager.deviceSettings[key] = Number(parsed.toFixed(3));
                         await this.manager.plugin.saveSettings();
                     }))
         });
@@ -67,8 +74,8 @@ class PluginsSettingsView {
                 this.addDelayOptions(dropdown);
                 dropdown
                     .setValue(this.manager.deviceSettings.defaultStartupType || '')
-                    .onChange(async (value: LoadingMethod) => {
-                        this.manager.deviceSettings.defaultStartupType = value || null;
+                    .onChange(async (value: string) => {
+                        this.manager.deviceSettings.defaultStartupType = isLoadingMethod(value) ? value : null;
                         await this.manager.plugin.saveSettings();
                     })
             });
@@ -90,13 +97,18 @@ class PluginsSettingsView {
             .addDropdown(dropdown => {
                 dropdown.addOption('', t('Set all plugins to be:'));
                 this.addDelayOptions(dropdown);
-                dropdown.onChange(async (value: LoadingMethod) => {
-                    this.manager.manifests.forEach(plugin => {
-                        this.manager.deviceSettings.plugins[plugin.id] = { startupType: value };
+                dropdown.onChange(async (value: string) => {
+                    if (!isLoadingMethod(value)) return;
+                    const pluginIds = this.manager.manifests.map(plugin => plugin.id);
+                    pluginIds.forEach(pluginId => {
+                        this.manager.deviceSettings.plugins[pluginId] = { startupType: value };
                     });
                     this.dropdowns.forEach(d => d.setValue(value));
                     dropdown.setValue('');
                     await this.manager.plugin.saveSettings();
+                    for (const pluginId of pluginIds) {
+                        await this.manager.setPluginStartup(pluginId);
+                    }
                 })
             });
 
@@ -121,7 +133,9 @@ class PluginsSettingsView {
 
         // Add filters to content
         const filterContainer = pluginsContent.createDiv();
-        filterContainer.createSpan({ text: t('Filter by: '), style: 'margin-right: 10px; font-weight: bold;' });
+        const filterLabel = filterContainer.createSpan({ text: t('Filter by: ') });
+        filterLabel.style.marginRight = '10px';
+        filterLabel.style.fontWeight = 'bold';
 
         this.addFilterButton(filterContainer, t('All'));
         Object.keys(LoadingMethod).forEach(key =>
@@ -141,6 +155,7 @@ class PluginsSettingsView {
 
     buildPluginList() {
         this.pluginListContainer.empty();
+        this.dropdowns = [];
         this.manager.updateManifests(); // Ensure fresh list
 
         this.manager.manifests.forEach(plugin => {
@@ -157,9 +172,10 @@ class PluginsSettingsView {
 
                     dropdown
                         .setValue(currentValue)
-                        .onChange(async (value: LoadingMethod) => {
+                        .onChange(async (value: string) => {
+                            if (!isLoadingMethod(value)) return;
                             await this.manager.updatePluginSettings(plugin.id, value);
-                            this.manager.setPluginStartup(plugin.id);
+                            await this.manager.setPluginStartup(plugin.id);
                         })
                 })
                 .then(setting => {

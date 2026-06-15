@@ -10,10 +10,12 @@ const localeMap: { [k: string]: Partial<typeof en> } = {
 
 const locale = localeMap[moment.locale()];
 
-export function t(str: keyof typeof en): string {
+export function t(str: string): string {
+    const key = str as keyof typeof en;
+
     if (!locale) {
-        return en[str] || str;
+        return en[key] || str;
     }
 
-    return locale[str] || en[str] || str;
+    return locale[key] || en[key] || str;
 }

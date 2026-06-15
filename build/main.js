@@ -27,26 +27,9 @@ __export(main_exports, {
   default: () => AssistantPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian16 = require("obsidian");
+var import_obsidian18 = require("obsidian");
 
 // src/settings.ts
-var DEFAULT_SETTINGS = {
-  myPlugins: null,
-  // Initialized below
-  myFolders: null,
-  mySideBar: null,
-  myStatusBar: null,
-  mySnippets: null
-};
-var DEFAULT_MY_FOLDERS_SETTINGS = {
-  enabled: true,
-  areFoldersHidden: true,
-  matchCaseInsensitive: true,
-  addHiddenFoldersToObsidianIgnoreList: false,
-  hideBottomStatusBarIndicatorText: false,
-  enableCompatQuickExplorer: false,
-  attachmentFolderNames: ["attachments"]
-};
 var LoadingMethod = /* @__PURE__ */ ((LoadingMethod2) => {
   LoadingMethod2["disabled"] = "disabled";
   LoadingMethod2["instant"] = "instant";
@@ -54,68 +37,220 @@ var LoadingMethod = /* @__PURE__ */ ((LoadingMethod2) => {
   LoadingMethod2["long"] = "long";
   return LoadingMethod2;
 })(LoadingMethod || {});
-var DEFAULT_DEVICE_SETTINGS = {
-  shortDelaySeconds: 5,
-  longDelaySeconds: 15,
-  delayBetweenPlugins: 40,
-  defaultStartupType: null,
-  showDescriptions: true,
-  enableDependencies: false,
-  plugins: {}
-};
-var DEFAULT_MY_PLUGINS_SETTINGS = {
-  enabled: true,
-  dualConfigs: false,
-  showConsoleLog: false,
-  desktop: DEFAULT_DEVICE_SETTINGS
-};
-var DEFAULT_STATUS_BAR_SETTINGS = {
-  enabled: true,
-  status: {},
-  version: "0.0.1"
-};
-var DEFAULT_MY_SNIPPETS_SETTINGS = {
-  aestheticStyle: false,
-  snippetViewPosition: "left",
-  openSnippetFile: true,
-  stylingTemplate: "",
-  snippetEnabledStatus: false,
-  showStatusBarIcon: true,
-  enabled: true
-};
-var DEFAULT_MY_SIDEBAR_SETTINGS = {
-  enabled: true,
-  autoHide: {
-    enabled: true,
-    leftSidebar: true,
-    rightSidebar: true,
-    syncLeftRight: true,
-    enforceSameDelay: true,
-    sidebarDelay: 500,
-    sidebarExpandDelay: 200,
-    leftSideBarPixelTrigger: 40,
-    rightSideBarPixelTrigger: 40,
-    overlayMode: false,
-    expandCollapseSpeed: 300,
-    leftSidebarMaxWidth: 350,
-    rightSidebarMaxWidth: 350
-  },
-  ribbon: {
-    enabled: true,
-    ribbonDisplayDelay: 1e3,
-    elements: {}
-  },
-  tabs: {
-    enabled: true,
-    elements: {},
-    bindings: []
+function isLoadingMethod(value) {
+  return Object.values(LoadingMethod).includes(value);
+}
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function recordOrEmpty(value) {
+  return isRecord(value) ? value : {};
+}
+function numberOrDefault(value, fallback, min) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed))
+    return fallback;
+  if (min !== void 0 && parsed < min)
+    return fallback;
+  return parsed;
+}
+function normalizeSplitRatio(binding) {
+  if (binding.splitRatio === void 0)
+    return;
+  binding.splitRatio = Math.round(binding.splitRatio);
+  if (binding.splitRatio < 10)
+    binding.splitRatio = 10;
+  if (binding.splitRatio > 90)
+    binding.splitRatio = 90;
+}
+function normalizeBinding(input) {
+  if (!isRecord(input))
+    return null;
+  if (typeof input.masterId !== "string" || typeof input.slaveId !== "string")
+    return null;
+  if (!input.masterId || !input.slaveId)
+    return null;
+  const binding = {
+    masterId: input.masterId,
+    slaveId: input.slaveId
+  };
+  if (typeof input.groupSvg === "string")
+    binding.groupSvg = input.groupSvg;
+  if (typeof input.groupName === "string")
+    binding.groupName = input.groupName;
+  const splitRatio = Number(input.splitRatio);
+  if (Number.isFinite(splitRatio)) {
+    binding.splitRatio = splitRatio;
+    normalizeSplitRatio(binding);
   }
-};
-DEFAULT_SETTINGS.myPlugins = DEFAULT_MY_PLUGINS_SETTINGS;
-DEFAULT_SETTINGS.myFolders = DEFAULT_MY_FOLDERS_SETTINGS;
-DEFAULT_SETTINGS.mySideBar = DEFAULT_MY_SIDEBAR_SETTINGS;
-DEFAULT_SETTINGS.myStatusBar = DEFAULT_STATUS_BAR_SETTINGS;
-DEFAULT_SETTINGS.mySnippets = DEFAULT_MY_SNIPPETS_SETTINGS;
+  return binding;
+}
+function normalizePluginSettings(input) {
+  if (!isRecord(input))
+    return null;
+  return isLoadingMethod(input.startupType) ? { startupType: input.startupType } : null;
+}
+function createDefaultFoldersSettings() {
+  return {
+    enabled: true,
+    areFoldersHidden: true,
+    matchCaseInsensitive: true,
+    addHiddenFoldersToObsidianIgnoreList: false,
+    hideBottomStatusBarIndicatorText: false,
+    enableCompatQuickExplorer: false,
+    attachmentFolderNames: ["attachments"]
+  };
+}
+function createDefaultDeviceSettings() {
+  return {
+    shortDelaySeconds: 5,
+    longDelaySeconds: 15,
+    delayBetweenPlugins: 40,
+    defaultStartupType: null,
+    showDescriptions: true,
+    enableDependencies: false,
+    plugins: {}
+  };
+}
+function createDefaultPluginsSettings() {
+  return {
+    enabled: true,
+    dualConfigs: false,
+    showConsoleLog: false,
+    desktop: createDefaultDeviceSettings()
+  };
+}
+function createDefaultStatusBarSettings() {
+  return {
+    enabled: true,
+    status: {},
+    version: "0.0.1"
+  };
+}
+function createDefaultSnippetsSettings() {
+  return {
+    aestheticStyle: false,
+    snippetViewPosition: "left",
+    openSnippetFile: true,
+    stylingTemplate: "",
+    snippetEnabledStatus: false,
+    showStatusBarIcon: true,
+    enabled: true
+  };
+}
+function createDefaultSideBarSettings() {
+  return {
+    enabled: true,
+    autoHide: {
+      enabled: true,
+      leftSidebar: true,
+      rightSidebar: true,
+      syncLeftRight: true,
+      enforceSameDelay: true,
+      sidebarDelay: 500,
+      sidebarExpandDelay: 200,
+      leftSideBarPixelTrigger: 40,
+      rightSideBarPixelTrigger: 40,
+      overlayMode: false,
+      expandCollapseSpeed: 300,
+      leftSidebarMaxWidth: 350,
+      rightSidebarMaxWidth: 350
+    },
+    ribbon: {
+      enabled: true,
+      ribbonDisplayDelay: 1e3,
+      elements: {}
+    },
+    tabs: {
+      enabled: true,
+      elements: {},
+      bindings: []
+    }
+  };
+}
+function createDefaultSettings() {
+  return {
+    myPlugins: createDefaultPluginsSettings(),
+    myFolders: createDefaultFoldersSettings(),
+    mySideBar: createDefaultSideBarSettings(),
+    myStatusBar: createDefaultStatusBarSettings(),
+    mySnippets: createDefaultSnippetsSettings()
+  };
+}
+var DEFAULT_MY_FOLDERS_SETTINGS = createDefaultFoldersSettings();
+var DEFAULT_DEVICE_SETTINGS = createDefaultDeviceSettings();
+var DEFAULT_MY_PLUGINS_SETTINGS = createDefaultPluginsSettings();
+var DEFAULT_STATUS_BAR_SETTINGS = createDefaultStatusBarSettings();
+var DEFAULT_MY_SNIPPETS_SETTINGS = createDefaultSnippetsSettings();
+var DEFAULT_MY_SIDEBAR_SETTINGS = createDefaultSideBarSettings();
+var DEFAULT_SETTINGS = createDefaultSettings();
+function migrateSettingsData(data) {
+  if (!data || typeof data !== "object")
+    return data;
+  if (data.myStatusBar) {
+    delete data.myStatusBar.presets;
+    delete data.myStatusBar.activePreset;
+    delete data.myStatusBar.activeFullscreenPreset;
+    delete data.myStatusBar.separateFullscreenPreset;
+    delete data.myStatusBar.presetsOrder;
+  }
+  delete data.statusBar;
+  delete data.statusBarOrganizer;
+  return data;
+}
+function normalizeDeviceSettings(input) {
+  const defaults = createDefaultDeviceSettings();
+  const source = isRecord(input) ? input : {};
+  const settings = Object.assign(defaults, source);
+  settings.shortDelaySeconds = numberOrDefault(settings.shortDelaySeconds, defaults.shortDelaySeconds, 0);
+  settings.longDelaySeconds = numberOrDefault(settings.longDelaySeconds, defaults.longDelaySeconds, 0);
+  settings.delayBetweenPlugins = numberOrDefault(settings.delayBetweenPlugins, defaults.delayBetweenPlugins, 0);
+  settings.defaultStartupType = isLoadingMethod(settings.defaultStartupType) ? settings.defaultStartupType : null;
+  settings.plugins = {};
+  Object.entries(recordOrEmpty(source.plugins)).forEach(([pluginId, value]) => {
+    const pluginSettings = normalizePluginSettings(value);
+    if (pluginSettings)
+      settings.plugins[pluginId] = pluginSettings;
+  });
+  return settings;
+}
+function normalizeSettings(loadedData) {
+  const data = isRecord(loadedData) ? migrateSettingsData(deepClone(loadedData)) : {};
+  const settings = createDefaultSettings();
+  const myFolders = recordOrEmpty(data.myFolders);
+  const myPlugins = recordOrEmpty(data.myPlugins);
+  const myStatusBar = recordOrEmpty(data.myStatusBar);
+  const mySnippets = recordOrEmpty(data.mySnippets);
+  const mySideBar = recordOrEmpty(data.mySideBar);
+  settings.myFolders = Object.assign(settings.myFolders, myFolders);
+  if (!Array.isArray(settings.myFolders.attachmentFolderNames)) {
+    settings.myFolders.attachmentFolderNames = createDefaultFoldersSettings().attachmentFolderNames;
+  }
+  settings.myPlugins = Object.assign(settings.myPlugins, myPlugins);
+  settings.myPlugins.desktop = normalizeDeviceSettings(myPlugins.desktop);
+  if (isRecord(myPlugins.mobile)) {
+    settings.myPlugins.mobile = normalizeDeviceSettings(myPlugins.mobile);
+  } else {
+    delete settings.myPlugins.mobile;
+  }
+  settings.myStatusBar = Object.assign(settings.myStatusBar, myStatusBar);
+  settings.myStatusBar.status = Object.assign({}, recordOrEmpty(myStatusBar.status));
+  settings.mySnippets = Object.assign(settings.mySnippets, mySnippets);
+  settings.mySideBar = Object.assign(settings.mySideBar, mySideBar);
+  const autoHide = recordOrEmpty(mySideBar.autoHide);
+  const ribbon = recordOrEmpty(mySideBar.ribbon);
+  const tabs = recordOrEmpty(mySideBar.tabs);
+  settings.mySideBar.autoHide = Object.assign(createDefaultSideBarSettings().autoHide, autoHide);
+  settings.mySideBar.ribbon = Object.assign(createDefaultSideBarSettings().ribbon, ribbon);
+  settings.mySideBar.ribbon.elements = Object.assign({}, recordOrEmpty(ribbon.elements));
+  settings.mySideBar.tabs = Object.assign(createDefaultSideBarSettings().tabs, tabs);
+  settings.mySideBar.tabs.elements = Object.assign({}, recordOrEmpty(tabs.elements));
+  settings.mySideBar.tabs.bindings = Array.isArray(tabs.bindings) ? tabs.bindings.map(normalizeBinding).filter((binding) => binding !== null) : [];
+  return settings;
+}
 
 // src/folders/manager.ts
 var import_obsidian2 = require("obsidian");
@@ -568,31 +703,111 @@ var localeMap = {
 };
 var locale = localeMap[import_obsidian.moment.locale()];
 function t(str) {
+  const key = str;
   if (!locale) {
-    return en_default[str] || str;
+    return en_default[key] || str;
   }
-  return locale[str] || en_default[str] || str;
+  return locale[key] || en_default[key] || str;
 }
 
+// src/utils/lifecycle.ts
+var LifecycleScope = class {
+  constructor() {
+    this.cleanups = [];
+    this.disposed = false;
+    this.generation = 0;
+  }
+  get isDisposed() {
+    return this.disposed;
+  }
+  reset() {
+    this.dispose();
+    this.cleanups = [];
+    this.disposed = false;
+    this.generation++;
+  }
+  token() {
+    return this.generation;
+  }
+  isCurrent(token) {
+    return !this.disposed && token === this.generation;
+  }
+  add(cleanup) {
+    if (this.disposed) {
+      cleanup();
+      return;
+    }
+    this.cleanups.push(cleanup);
+  }
+  setTimer(callback, delay) {
+    if (this.disposed)
+      return null;
+    let timer = window.setTimeout(() => {
+      timer = null;
+      if (!this.disposed)
+        callback();
+    }, delay);
+    this.add(() => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+    });
+    return timer;
+  }
+  observe(observer, target, options) {
+    if (this.disposed)
+      return;
+    observer.observe(target, options);
+    this.add(() => observer.disconnect());
+  }
+  event(owner, ref) {
+    this.add(() => owner.offref(ref));
+  }
+  dom(target, type, listener, options) {
+    if (this.disposed)
+      return;
+    target.addEventListener(type, listener, options);
+    this.add(() => target.removeEventListener(type, listener, options));
+  }
+  dispose() {
+    if (this.disposed)
+      return;
+    this.disposed = true;
+    const cleanups = this.cleanups.splice(0).reverse();
+    cleanups.forEach((cleanup) => {
+      try {
+        cleanup();
+      } catch (e) {
+        console.error("Assistant: lifecycle cleanup failed", e);
+      }
+    });
+  }
+};
+
 // src/folders/manager.ts
+var HIDDEN_FOLDER_CLASS = "obsidian-hide-folders--hidden";
+function escapeCssAttributeValue(value) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r/g, "\\D ").replace(/\n/g, "\\A ").replace(/\f/g, "\\C ");
+}
 var FoldersManager = class {
   constructor(app, plugin) {
     this.ribbonIconButton = null;
     this.statusBarItem = null;
     this.mutationObserver = null;
     this.layoutChangeRef = null;
+    this.renameEventRef = null;
+    this.scope = new LifecycleScope();
+    this.folderStyleSnapshots = /* @__PURE__ */ new Map();
+    this.isLoaded = false;
     this.processFolders = (0, import_obsidian2.debounce)(async (recheckPreviouslyHiddenFolders) => {
-      if (!this.settings.enabled)
-        return;
-      if (this.settings.attachmentFolderNames.length === 0)
+      if (!this.isLoaded || !this.settings.enabled)
         return;
       if (recheckPreviouslyHiddenFolders) {
-        document.querySelectorAll(".obsidian-hide-folders--hidden").forEach((folder) => {
-          folder.style.height = "";
-          folder.style.overflow = "";
-          folder.removeClass("obsidian-hide-folders--hidden");
-        });
+        this.restoreProcessedFolders();
       }
+      if (this.settings.attachmentFolderNames.length === 0)
+        return;
       this.settings.attachmentFolderNames.forEach((folderName) => {
         var _a, _b;
         if (getFolderNameWithoutPrefix(folderName) === "")
@@ -609,10 +824,15 @@ var FoldersManager = class {
             if (!folder) {
               return;
             }
-            folder.addClass("obsidian-hide-folders--hidden");
-            folder.style.height = this.settings.areFoldersHidden ? "0" : "";
-            folder.style.display = this.settings.areFoldersHidden ? "none" : "";
-            folder.style.overflow = this.settings.areFoldersHidden ? "hidden" : "";
+            if (this.settings.areFoldersHidden) {
+              this.rememberFolderStyles(folder);
+              folder.addClass(HIDDEN_FOLDER_CLASS);
+              folder.style.height = "0";
+              folder.style.display = "none";
+              folder.style.overflow = "hidden";
+            } else if (this.folderStyleSnapshots.has(folder) || folder.hasClass(HIDDEN_FOLDER_CLASS)) {
+              this.restoreFolder(folder);
+            }
           });
         } catch (e) {
           console.error(`Failed to process folder ${folderName}:`, e);
@@ -626,12 +846,16 @@ var FoldersManager = class {
     return this.plugin.settings.myFolders;
   }
   getQuerySelectorStringForFolderName(folderName) {
+    const rawFolderName = folderName.trim();
+    const folderNameWithoutPrefix = getFolderNameWithoutPrefix(folderName);
+    const escapedRawFolderName = escapeCssAttributeValue(rawFolderName);
+    const escapedFolderNameWithoutPrefix = escapeCssAttributeValue(folderNameWithoutPrefix);
     if (folderName.toLowerCase().startsWith("endswith::")) {
-      return `*:has(> [data-path$="${getFolderNameWithoutPrefix(folderName)}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
+      return `*:has(> [data-path$="${escapedFolderNameWithoutPrefix}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
     } else if (folderName.toLowerCase().startsWith("startswith::")) {
-      return `*:has(> .nav-folder-title[data-path^="${getFolderNameWithoutPrefix(folderName)}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> .nav-folder-title[data-path*="/${getFolderNameWithoutPrefix(folderName)}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
+      return `*:has(> .nav-folder-title[data-path^="${escapedFolderNameWithoutPrefix}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> .nav-folder-title[data-path*="/${escapedFolderNameWithoutPrefix}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
     } else {
-      return `*:has(> [data-path$="/${folderName.trim()}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> [data-path="${folderName.trim()}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
+      return `*:has(> [data-path$="/${escapedRawFolderName}"${this.settings.matchCaseInsensitive ? " i" : ""}]), *:has(> [data-path="${escapedRawFolderName}"${this.settings.matchCaseInsensitive ? " i" : ""}])`;
     }
   }
   async toggleFunctionality() {
@@ -641,7 +865,7 @@ var FoldersManager = class {
       (0, import_obsidian2.setIcon)(this.ribbonIconButton, this.settings.areFoldersHidden ? "eye" : "eye-off");
     }
     if (this.statusBarItem) {
-      this.statusBarItem.innerHTML = this.settings.areFoldersHidden ? t("Configured folders are hidden") : "";
+      this.statusBarItem.setText(this.settings.areFoldersHidden ? t("Configured folders are hidden") : "");
     }
     await this.processFolders();
     await this.plugin.saveSettings();
@@ -653,7 +877,7 @@ var FoldersManager = class {
       (0, import_obsidian2.setIcon)(this.ribbonIconButton, this.settings.areFoldersHidden ? "eye" : "eye-off");
     }
     if (this.statusBarItem) {
-      this.statusBarItem.innerHTML = this.settings.areFoldersHidden ? t("Configured folders are hidden") : "";
+      this.statusBarItem.setText(this.settings.areFoldersHidden ? t("Configured folders are hidden") : "");
     }
   }
   createIgnoreListRegExpForFolderName(rawFolderName) {
@@ -676,7 +900,7 @@ var FoldersManager = class {
         if (getFolderNameWithoutPrefix(folderName).trim() === "")
           return;
         const regExp = this.createIgnoreListRegExpForFolderName(folderName);
-        if (ignoreList.contains(regExp))
+        if (ignoreList.includes(regExp))
           return;
         ignoreList.push(regExp);
       });
@@ -687,11 +911,12 @@ var FoldersManager = class {
     this.app.vault.setConfig("userIgnoreFilters", ignoreList);
   }
   async removeSpecificFoldersFromObsidianIgnoreList(folderNames) {
-    folderNames.forEach((folderName) => {
-      var _a;
-      (_a = this.app.vault.config.userIgnoreFilters) == null ? void 0 : _a.remove(this.createIgnoreListRegExpForFolderName(folderName));
-      this.app.vault.trigger("config-changed");
-    });
+    var _a;
+    const filtersToRemove = new Set(folderNames.map((folderName) => this.createIgnoreListRegExpForFolderName(folderName)));
+    const currentFilters = (_a = this.app.vault.getConfig("userIgnoreFilters")) != null ? _a : [];
+    const nextFilters = currentFilters.filter((filter) => !filtersToRemove.has(filter));
+    this.app.vault.setConfig("userIgnoreFilters", nextFilters);
+    this.app.vault.trigger("config-changed");
   }
   createBottomStatusBarIndicatorTextItem() {
     if (this.statusBarItem)
@@ -699,10 +924,45 @@ var FoldersManager = class {
     this.statusBarItem = this.plugin.addStatusBarItem();
     this.statusBarItem.setText(this.settings.areFoldersHidden ? t("Configured folders are hidden") : "");
   }
+  scheduleProcessFolders(delay, recheckPreviouslyHiddenFolders) {
+    this.scope.setTimer(() => {
+      if (!this.isLoaded)
+        return;
+      this.processFolders(recheckPreviouslyHiddenFolders);
+    }, delay);
+  }
+  rememberFolderStyles(folder) {
+    if (this.folderStyleSnapshots.has(folder))
+      return;
+    this.folderStyleSnapshots.set(folder, {
+      height: folder.style.height,
+      display: folder.style.display,
+      overflow: folder.style.overflow
+    });
+  }
+  restoreFolder(folder) {
+    var _a, _b, _c;
+    const snapshot = this.folderStyleSnapshots.get(folder);
+    folder.style.height = (_a = snapshot == null ? void 0 : snapshot.height) != null ? _a : "";
+    folder.style.display = (_b = snapshot == null ? void 0 : snapshot.display) != null ? _b : "";
+    folder.style.overflow = (_c = snapshot == null ? void 0 : snapshot.overflow) != null ? _c : "";
+    folder.removeClass(HIDDEN_FOLDER_CLASS);
+    this.folderStyleSnapshots.delete(folder);
+  }
+  restoreProcessedFolders() {
+    Array.from(this.folderStyleSnapshots.keys()).forEach((folder) => this.restoreFolder(folder));
+    document.querySelectorAll(`.${HIDDEN_FOLDER_CLASS}`).forEach((folder) => this.restoreFolder(folder));
+    this.folderStyleSnapshots.clear();
+  }
   async onload() {
+    if (this.isLoaded)
+      return;
     if (!this.settings.enabled)
       return;
+    this.isLoaded = true;
+    this.scope.reset();
     console.log(t("Loading MyFolders module"));
+    const loadToken = this.scope.token();
     this.ribbonIconButton = this.plugin.addRibbonIcon(
       this.settings.areFoldersHidden ? "eye" : "eye-off",
       this.settings.areFoldersHidden ? t("Show hidden folders") : t("Hide hidden folders again"),
@@ -736,29 +996,32 @@ var FoldersManager = class {
         return;
       this.processFolders();
     });
+    this.scope.add(() => {
+      var _a;
+      (_a = this.mutationObserver) == null ? void 0 : _a.disconnect();
+      this.mutationObserver = null;
+    });
     this.observeFileExplorers();
     this.layoutChangeRef = this.app.workspace.on("layout-change", () => {
       this.observeFileExplorers();
       this.processFolders();
     });
+    this.scope.event(this.app.workspace, this.layoutChangeRef);
     this.renameEventRef = this.app.vault.on("rename", () => {
-      window.setTimeout(() => {
-        this.processFolders();
-      }, 50);
+      this.scheduleProcessFolders(50);
     });
+    this.scope.event(this.app.vault, this.renameEventRef);
     if (this.app.workspace.layoutReady) {
       if (this.settings.areFoldersHidden) {
-        window.setTimeout(() => {
-          this.processFolders();
-        }, 1e3);
+        this.scheduleProcessFolders(1e3);
       }
     } else {
       this.app.workspace.onLayoutReady(() => {
-        if (!this.settings.areFoldersHidden)
+        if (!this.scope.isCurrent(loadToken))
           return;
-        window.setTimeout(() => {
-          this.processFolders();
-        }, 1e3);
+        if (!this.isLoaded || !this.settings.areFoldersHidden)
+          return;
+        this.scheduleProcessFolders(1e3);
       });
     }
   }
@@ -777,21 +1040,16 @@ var FoldersManager = class {
     }
   }
   onunload() {
-    var _a, _b, _c;
+    var _a, _b;
     console.log(t("Unloading MyFolders module"));
-    (_a = this.mutationObserver) == null ? void 0 : _a.disconnect();
-    this.mutationObserver = null;
-    if (this.renameEventRef) {
-      this.app.vault.offbyref(this.renameEventRef);
-      this.renameEventRef = null;
-    }
-    if (this.layoutChangeRef) {
-      this.app.workspace.offref(this.layoutChangeRef);
-      this.layoutChangeRef = null;
-    }
-    (_b = this.ribbonIconButton) == null ? void 0 : _b.remove();
+    this.isLoaded = false;
+    this.scope.dispose();
+    this.renameEventRef = null;
+    this.layoutChangeRef = null;
+    this.restoreProcessedFolders();
+    (_a = this.ribbonIconButton) == null ? void 0 : _a.remove();
     this.ribbonIconButton = null;
-    (_c = this.statusBarItem) == null ? void 0 : _c.remove();
+    (_b = this.statusBarItem) == null ? void 0 : _b.remove();
     this.statusBarItem = null;
   }
 };
@@ -822,19 +1080,21 @@ function renderFoldersSettings(containerEl, manager) {
     settings.attachmentFolderNames = newSettingsValue;
     await plugin.saveSettings();
     await manager.updateObsidianIgnoreList();
+    manager.processFolders(true);
   }));
   new import_obsidian3.Setting(containerEl).setName(t("Ignore Upper/lowercase")).setDesc(t("If enabled, 'SOMEFOLDER', 'someFolder', or 'sOmeFoldEr' will all be treated the same and matched.")).addToggle((toggle) => toggle.setValue(settings.matchCaseInsensitive).onChange(async (value) => {
     await manager.removeSpecificFoldersFromObsidianIgnoreList(settings.attachmentFolderNames);
     settings.matchCaseInsensitive = value;
     await plugin.saveSettings();
     await manager.updateObsidianIgnoreList();
+    manager.processFolders(true);
   }));
   new import_obsidian3.Setting(containerEl).setName(t("Hide folders")).setDesc(t("If the configured folders should be hidden or not")).addToggle((toggle) => toggle.setValue(settings.areFoldersHidden).onChange(async (value) => {
     settings.areFoldersHidden = value;
     await plugin.saveSettings();
     await manager.updateObsidianIgnoreList();
     manager.updateUI();
-    manager.processFolders();
+    manager.processFolders(true);
   }));
   new import_obsidian3.Setting(containerEl).setName(t("Add Hidden Folders to Obsidian Exclusion-List")).setDesc(t("Excluded files will be hidden in Search, Graph View, and Unlinked Mentions, less noticeable in Quick Switcher and link suggestions.")).addToggle((toggle) => toggle.setValue(settings.addHiddenFoldersToObsidianIgnoreList).onChange(async (value) => {
     settings.addHiddenFoldersToObsidianIgnoreList = value;
@@ -863,6 +1123,7 @@ function renderFoldersSettings(containerEl, manager) {
 // src/statusbar/spooler.ts
 var Spooler = class {
   constructor(plugin, callback) {
+    this.disposed = false;
     this.plugin = plugin;
     this.mutex = false;
     this.spooler = 0;
@@ -886,7 +1147,14 @@ var Spooler = class {
    * Enable automatic spooling.
    */
   enableObserver() {
+    if (this.disposed || !this.plugin.statusBar)
+      return;
     this.observer.observe(this.plugin.statusBar, { childList: true });
+  }
+  dispose() {
+    this.disposed = true;
+    window.clearTimeout(this.spooler);
+    this.disableObserver();
   }
   /**
    * Schedule status bar elements to be reordered.
@@ -894,16 +1162,26 @@ var Spooler = class {
    * @param timeout 
    */
   spoolFix(timeout = 1e3) {
+    if (this.disposed)
+      return;
     clearTimeout(this.spooler);
     this.spooler = window.setTimeout(() => {
+      if (this.disposed)
+        return;
       if (this.mutex) {
         this.spoolFix();
       } else {
         this.mutex = true;
         this.disableObserver();
-        this.callback(this.plugin);
-        this.enableObserver();
-        this.mutex = false;
+        try {
+          this.callback(this.plugin);
+        } catch (e) {
+          console.error("Assistant: status bar reorder failed", e);
+        } finally {
+          this.mutex = false;
+          if (!this.disposed)
+            this.enableObserver();
+        }
       }
     }, timeout);
   }
@@ -913,7 +1191,8 @@ var Spooler = class {
 var ignoredClasses = [
   "mod-clickable",
   "status-bar-item",
-  "statusbar-organizer-hidden"
+  "statusbar-organizer-hidden",
+  "statusbar-organizer-element-hidden"
 ];
 function getStatusBarElements(statusBar) {
   const elements = [];
@@ -922,7 +1201,7 @@ function getStatusBarElements(statusBar) {
     let id = element.getAttribute("data-statusbar-organizer-id");
     let name, index;
     if (id == null) {
-      name = Array.from(element.classList).filter((x) => !ignoredClasses.contains(x)).join("-");
+      name = Array.from(element.classList).filter((x) => !ignoredClasses.includes(x)).join("-");
       index = name in pluginElementCount ? pluginElementCount[name] + 1 : 1;
       id = generateElementId(name, index);
       element.setAttribute("data-statusbar-organizer-id", id);
@@ -968,6 +1247,7 @@ function fixOrder(plugin) {
   const known = [];
   const orphans = [];
   for (const element of elements) {
+    plugin.rememberElementState(element.element);
     if (element.id in status) {
       const myStatus = status[element.id];
       known.push([element, myStatus.position]);
@@ -988,9 +1268,13 @@ function fixOrder(plugin) {
 }
 
 // src/statusbar/manager.ts
+var HIDDEN_ELEMENT_CLASS = "statusbar-organizer-element-hidden";
 var StatusBarManager = class {
   constructor(app, plugin) {
+    this.spooler = null;
     this.isLoaded = false;
+    this.loadGeneration = 0;
+    this.elementSnapshots = /* @__PURE__ */ new Map();
     this.app = app;
     this.plugin = plugin;
     this.settings = this.plugin.settings.myStatusBar;
@@ -999,11 +1283,14 @@ var StatusBarManager = class {
     if (this.isLoaded)
       return;
     this.isLoaded = true;
+    const generation = ++this.loadGeneration;
     this.statusBar = document.querySelector(".status-bar");
     if (!this.statusBar) {
       this.app.workspace.onLayoutReady(() => {
+        if (!this.isLoaded || generation !== this.loadGeneration)
+          return;
         this.statusBar = document.querySelector(".status-bar");
-        if (this.statusBar && this.isLoaded)
+        if (this.statusBar)
           this.initializeManager();
       });
       return;
@@ -1013,6 +1300,8 @@ var StatusBarManager = class {
   initializeManager() {
     if (!this.statusBar)
       return;
+    if (this.spooler)
+      this.spooler.dispose();
     this.spooler = new Spooler(this, fixOrder);
     fixOrder(this);
     this.spooler.enableObserver();
@@ -1021,8 +1310,16 @@ var StatusBarManager = class {
     if (!this.isLoaded)
       return;
     this.isLoaded = false;
+    this.loadGeneration++;
     if (this.spooler)
-      this.spooler.disableObserver();
+      this.spooler.dispose();
+    this.spooler = null;
+    this.restoreManagedElementState();
+  }
+  refreshAfterSoftStartup() {
+    if (!this.isLoaded || !this.statusBar || !this.spooler)
+      return;
+    this.spooler.spoolFix(0);
   }
   saveSettings() {
     return this.plugin.saveSettings();
@@ -1031,11 +1328,29 @@ var StatusBarManager = class {
     this.settings.status = currentBarStatus;
     await this.saveSettings();
   }
+  rememberElementState(element) {
+    if (this.elementSnapshots.has(element))
+      return;
+    this.elementSnapshots.set(element, {
+      order: element.style.order,
+      hadHiddenClass: element.hasClass(HIDDEN_ELEMENT_CLASS)
+    });
+  }
+  restoreManagedElementState() {
+    this.elementSnapshots.forEach((snapshot, element) => {
+      if (!element.isConnected)
+        return;
+      element.style.order = snapshot.order;
+      element.toggleClass(HIDDEN_ELEMENT_CLASS, snapshot.hadHiddenClass);
+    });
+    this.elementSnapshots.clear();
+  }
   /**
    * Merge information about status bar elements based on
    * the saved settings and the state of the actual status bar.
    */
   async consolidateSettingsAndElements() {
+    var _a;
     const loadedElementStatus = this.settings.status || {};
     if (!this.statusBar) {
       return { rows: [], barStatus: {}, existsStatus: {} };
@@ -1073,7 +1388,7 @@ var StatusBarManager = class {
     });
     const rows = unorderedStatusBarElements.concat(disabledStatusBarElements).map((x) => [x, barStatus[x.id].position]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
     await this.saveStatus(barStatus);
-    this.spooler.spoolFix(0);
+    (_a = this.spooler) == null ? void 0 : _a.spoolFix(0);
     return {
       rows,
       barStatus,
@@ -1085,6 +1400,11 @@ var StatusBarManager = class {
 // src/statusbar/rows.ts
 var import_obsidian4 = require("obsidian");
 var dragging;
+function cloneChildren(source, target) {
+  Array.from(source.childNodes).forEach((child) => {
+    target.appendChild(child.cloneNode(true));
+  });
+}
 async function initializeRows(plugin, settingsContainer) {
   settingsContainer.empty();
   dragging = false;
@@ -1129,7 +1449,7 @@ async function initializeRows(plugin, settingsContainer) {
     const previewSpan = document.createElement("span");
     previewSpan.addClass("statusbar-organizer-row-preview");
     if (currentExists) {
-      previewSpan.innerHTML = row.element.innerHTML;
+      cloneChildren(row.element, previewSpan);
     }
     entry.appendChild(previewSpan);
     const visibilitySpan = document.createElement("span");
@@ -1190,7 +1510,7 @@ function cloneRow(settingsContainer, barStatus, existsStatus, rowsContainer, eve
   for (const child of Array.from(realEntry.children)) {
     const fauxSpan = document.createElement("span");
     fauxSpan.className = child.className;
-    fauxSpan.innerHTML = child.innerHTML;
+    cloneChildren(child, fauxSpan);
     fauxEntry.appendChild(fauxSpan);
   }
   let offsetX = event.clientX - fauxEntry.getBoundingClientRect().left;
@@ -1243,13 +1563,14 @@ function handleMouseDown(event, plugin, barStatus, existsStatus, settingsContain
   dragging = true;
   let { stationaryRow, movableRow, offsetX, offsetY, index } = cloneRow(settingsContainer, barStatus, existsStatus, rowsContainer, event, row);
   function handleMouseMove(event2) {
-    plugin.spooler.disableObserver();
+    var _a, _b;
+    (_a = plugin.spooler) == null ? void 0 : _a.disableObserver();
     const newIndex = calculateRowIndex(event2, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index);
     if (newIndex != index) {
       handlePositionChange(barStatus, existsStatus, rowsContainer, rows, row, stationaryRow, newIndex);
       index = newIndex;
     }
-    plugin.spooler.enableObserver();
+    (_b = plugin.spooler) == null ? void 0 : _b.enableObserver();
   }
   window.addEventListener("mousemove", handleMouseMove);
   async function handleMouseUp() {
@@ -1280,9 +1601,12 @@ var import_obsidian5 = require("obsidian");
 var PluginsManager = class {
   constructor(app, plugin) {
     this.manifests = [];
-    this.pendingTimeouts = [];
+    this.pendingTimeouts = /* @__PURE__ */ new Map();
     this.device = "desktop/global";
+    this.scope = new LifecycleScope();
     this.isLoaded = false;
+    this.startupOperationCounter = 0;
+    this.startupOperations = /* @__PURE__ */ new Map();
     this.app = app;
     this.plugin = plugin;
   }
@@ -1296,15 +1620,23 @@ var PluginsManager = class {
     return this.settings.desktop;
   }
   async onload() {
-    if (this.isLoaded)
+    if (this.isLoaded || !this.settings.enabled)
       return;
     this.isLoaded = true;
-    if (!this.settings.enabled)
+    this.scope.reset();
+    await this.refreshDeviceConfiguration();
+    if (!this.isLoaded)
       return;
+    this.manifests.forEach((plugin) => {
+      void this.setPluginStartup(plugin.id);
+    });
+  }
+  async refreshDeviceConfiguration() {
+    let changed = false;
     if (this.settings.dualConfigs && import_obsidian5.Platform.isMobile) {
       if (!this.settings.mobile) {
         this.settings.mobile = JSON.parse(JSON.stringify(this.settings.desktop));
-        await this.plugin.saveSettings();
+        changed = true;
       }
       this.device = "mobile";
     } else {
@@ -1312,60 +1644,122 @@ var PluginsManager = class {
     }
     this.updateManifests();
     await this.setInitialPluginsConfiguration();
-    this.manifests.forEach((plugin) => this.setPluginStartup(plugin.id));
+    if (changed) {
+      await this.plugin.saveSettings();
+    }
   }
   onunload() {
     if (!this.isLoaded)
       return;
     this.isLoaded = false;
-    this.pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
-    this.pendingTimeouts = [];
+    this.scope.dispose();
+    this.pendingTimeouts.forEach((timeout) => window.clearTimeout(timeout));
+    this.pendingTimeouts.clear();
+    this.startupOperations.clear();
   }
   async setPluginStartup(pluginId) {
     var _a, _b;
-    const obsidian = this.app.plugins;
+    if (!this.isLoaded || !this.settings.enabled)
+      return;
+    this.clearPendingStartup(pluginId);
+    const runToken = this.scope.token();
+    const operationToken = ++this.startupOperationCounter;
+    this.startupOperations.set(pluginId, operationToken);
+    const obsidian = this.getObsidianPlugins();
     const startupType = this.getPluginStartup(pluginId);
     const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
     const isRunning = (_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded;
-    switch (startupType) {
-      case "disabled" /* disabled */:
-        await obsidian.disablePluginAndSave(pluginId);
-        break;
-      case "instant" /* instant */:
-        if (!isActiveOnStartup && !isRunning)
-          await obsidian.enablePluginAndSave(pluginId);
-        break;
-      case "short" /* short */:
-      case "long" /* long */:
-        if (isActiveOnStartup) {
+    try {
+      switch (startupType) {
+        case "disabled" /* disabled */:
+          if (!this.isActiveRun(runToken, pluginId, operationToken))
+            return;
           await obsidian.disablePluginAndSave(pluginId);
-          await obsidian.enablePlugin(pluginId);
-        } else if (!isRunning) {
-          const seconds = startupType === "short" /* short */ ? this.deviceSettings.shortDelaySeconds : this.deviceSettings.longDelaySeconds;
-          const stagger = isNaN(this.deviceSettings.delayBetweenPlugins) ? 40 : this.deviceSettings.delayBetweenPlugins;
-          const delay = this.manifests.findIndex((x) => x.id === pluginId) * stagger;
-          const timeout = setTimeout(async () => {
-            var _a2, _b2;
-            try {
-              if (!((_b2 = (_a2 = obsidian.plugins) == null ? void 0 : _a2[pluginId]) == null ? void 0 : _b2._loaded)) {
-                if (this.settings.showConsoleLog) {
-                  console.log(t("Starting {id} after a {type} delay").replace("{id}", pluginId).replace("{type}", startupType));
-                }
-                await obsidian.enablePlugin(pluginId);
-              }
-            } catch (e) {
-              console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
-            }
-          }, seconds * 1e3 + delay);
-          this.pendingTimeouts.push(timeout);
-        }
-        break;
+          if (!this.isActiveRun(runToken, pluginId, operationToken))
+            return;
+          break;
+        case "instant" /* instant */:
+          if (!this.isActiveRun(runToken, pluginId, operationToken))
+            return;
+          if (!isActiveOnStartup && !isRunning) {
+            await obsidian.enablePluginAndSave(pluginId);
+            if (!this.isActiveRun(runToken, pluginId, operationToken))
+              return;
+            this.requestSoftStartupRefresh();
+          }
+          break;
+        case "short" /* short */:
+        case "long" /* long */:
+          if (isActiveOnStartup) {
+            if (!this.isActiveRun(runToken, pluginId, operationToken))
+              return;
+            await obsidian.disablePluginAndSave(pluginId);
+            if (!this.isActiveRun(runToken, pluginId, operationToken))
+              return;
+            await obsidian.enablePlugin(pluginId);
+            if (!this.isActiveRun(runToken, pluginId, operationToken))
+              return;
+            this.requestSoftStartupRefresh();
+          } else if (!isRunning) {
+            if (!this.isActiveRun(runToken, pluginId, operationToken))
+              return;
+            this.scheduleDelayedStartup(pluginId, startupType, obsidian, runToken, operationToken);
+          }
+          break;
+      }
+    } catch (e) {
+      console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
     }
+  }
+  scheduleDelayedStartup(pluginId, startupType, obsidian, runToken, operationToken) {
+    const seconds = startupType === "short" /* short */ ? this.deviceSettings.shortDelaySeconds : this.deviceSettings.longDelaySeconds;
+    const stagger = isNaN(this.deviceSettings.delayBetweenPlugins) ? 40 : this.deviceSettings.delayBetweenPlugins;
+    const manifestIndex = this.manifests.findIndex((x) => x.id === pluginId);
+    const delay = Math.max(0, manifestIndex) * stagger;
+    const timeout = window.setTimeout(async () => {
+      var _a, _b;
+      if (this.pendingTimeouts.get(pluginId) === timeout) {
+        this.pendingTimeouts.delete(pluginId);
+      }
+      if (!this.isActiveRun(runToken, pluginId, operationToken))
+        return;
+      try {
+        if (!((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded)) {
+          if (this.settings.showConsoleLog) {
+            console.log(t("Starting {id} after a {type} delay").replace("{id}", pluginId).replace("{type}", startupType));
+          }
+          await obsidian.enablePlugin(pluginId);
+          if (!this.isActiveRun(runToken, pluginId, operationToken))
+            return;
+          this.requestSoftStartupRefresh();
+        }
+      } catch (e) {
+        console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
+      }
+    }, seconds * 1e3 + delay);
+    this.pendingTimeouts.set(pluginId, timeout);
+    this.scope.add(() => window.clearTimeout(timeout));
+  }
+  clearPendingStartup(pluginId) {
+    const pending = this.pendingTimeouts.get(pluginId);
+    if (pending !== void 0) {
+      window.clearTimeout(pending);
+      this.pendingTimeouts.delete(pluginId);
+    }
+  }
+  isActiveRun(token, pluginId, operationToken) {
+    return this.isLoaded && this.settings.enabled && this.scope.isCurrent(token) && (pluginId === void 0 || this.startupOperations.get(pluginId) === operationToken);
+  }
+  requestSoftStartupRefresh() {
+    var _a, _b;
+    if (!this.isLoaded || !this.settings.enabled)
+      return;
+    (_a = this.plugin.statusBarManager) == null ? void 0 : _a.refreshAfterSoftStartup();
+    (_b = this.plugin.sidebarManager) == null ? void 0 : _b.refreshAfterSoftStartup();
   }
   getPluginStartup(pluginId) {
     var _a, _b;
-    return ((_b = (_a = this.deviceSettings.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b.startupType) || this.deviceSettings.defaultStartupType || // @ts-expect-error
-    (this.app.plugins.enabledPlugins.has(pluginId) ? "instant" /* instant */ : "disabled" /* disabled */);
+    return ((_b = (_a = this.deviceSettings.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b.startupType) || this.deviceSettings.defaultStartupType || (this.getObsidianPlugins().enabledPlugins.has(pluginId) ? "instant" /* instant */ : "disabled" /* disabled */);
   }
   async setInitialPluginsConfiguration() {
     var _a, _b;
@@ -1380,14 +1774,21 @@ var PluginsManager = class {
       await this.plugin.saveSettings();
   }
   async updatePluginSettings(pluginId, startupType) {
+    if (!isLoadingMethod(startupType))
+      return;
     this.deviceSettings.plugins[pluginId] = { startupType };
     await this.plugin.saveSettings();
   }
   updatePluginSettingsWithNoSave(pluginId, startupType) {
+    if (!isLoadingMethod(startupType))
+      return;
     this.deviceSettings.plugins[pluginId] = { startupType };
   }
   updateManifests() {
-    this.manifests = Object.values(this.app.plugins.manifests).filter((plugin) => plugin.id !== this.plugin.manifest.id && !(import_obsidian5.Platform.isMobile && plugin.isDesktopOnly)).sort((a, b) => a.name.localeCompare(b.name));
+    this.manifests = Object.values(this.getObsidianPlugins().manifests).filter((plugin) => plugin.id !== this.plugin.manifest.id && !(import_obsidian5.Platform.isMobile && plugin.isDesktopOnly)).sort((a, b) => a.name.localeCompare(b.name));
+  }
+  getObsidianPlugins() {
+    return this.app.plugins;
   }
 };
 
@@ -1413,8 +1814,10 @@ var PluginsSettingsView = class {
     new import_obsidian6.Setting(containerEl).setName(t("Separate desktop/mobile configuration")).setDesc(t("Enable this if you want to have different settings depending whether you're using a desktop or mobile device. All of the settings below can be configured differently on desktop and mobile. You're currently using the {device} settings.").replace("{device}", this.manager.device)).addToggle((toggle) => {
       toggle.setValue(this.settings.dualConfigs).onChange(async (value) => {
         this.settings.dualConfigs = value;
+        await this.manager.refreshDeviceConfiguration();
         await this.manager.plugin.saveSettings();
-        await this.manager.onload();
+        this.containerEl.empty();
+        await this.display();
       });
     });
     Object.entries({
@@ -1422,7 +1825,12 @@ var PluginsSettingsView = class {
       longDelaySeconds: t("Long delay (seconds)")
     }).forEach(([key, name]) => {
       new import_obsidian6.Setting(containerEl).setName(name).addText((text) => text.setValue(this.manager.deviceSettings[key].toString()).onChange(async (value) => {
-        this.manager.deviceSettings[key] = parseFloat(parseFloat(value).toFixed(3));
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          text.setValue(this.manager.deviceSettings[key].toString());
+          return;
+        }
+        this.manager.deviceSettings[key] = Number(parsed.toFixed(3));
         await this.manager.plugin.saveSettings();
       }));
     });
@@ -1430,7 +1838,7 @@ var PluginsSettingsView = class {
       dropdown.addOption("", t("Nothing configured"));
       this.addDelayOptions(dropdown);
       dropdown.setValue(this.manager.deviceSettings.defaultStartupType || "").onChange(async (value) => {
-        this.manager.deviceSettings.defaultStartupType = value || null;
+        this.manager.deviceSettings.defaultStartupType = isLoadingMethod(value) ? value : null;
         await this.manager.plugin.saveSettings();
       });
     });
@@ -1445,12 +1853,18 @@ var PluginsSettingsView = class {
       dropdown.addOption("", t("Set all plugins to be:"));
       this.addDelayOptions(dropdown);
       dropdown.onChange(async (value) => {
-        this.manager.manifests.forEach((plugin) => {
-          this.manager.deviceSettings.plugins[plugin.id] = { startupType: value };
+        if (!isLoadingMethod(value))
+          return;
+        const pluginIds = this.manager.manifests.map((plugin) => plugin.id);
+        pluginIds.forEach((pluginId) => {
+          this.manager.deviceSettings.plugins[pluginId] = { startupType: value };
         });
         this.dropdowns.forEach((d) => d.setValue(value));
         dropdown.setValue("");
         await this.manager.plugin.saveSettings();
+        for (const pluginId of pluginIds) {
+          await this.manager.setPluginStartup(pluginId);
+        }
       });
     });
     const pluginsDetails = containerEl.createEl("details");
@@ -1469,7 +1883,9 @@ var PluginsSettingsView = class {
     pluginsContent.style.paddingLeft = "5px";
     pluginsContent.style.borderLeft = "2px solid var(--background-modifier-border)";
     const filterContainer = pluginsContent.createDiv();
-    filterContainer.createSpan({ text: t("Filter by: "), style: "margin-right: 10px; font-weight: bold;" });
+    const filterLabel = filterContainer.createSpan({ text: t("Filter by: ") });
+    filterLabel.style.marginRight = "10px";
+    filterLabel.style.fontWeight = "bold";
     this.addFilterButton(filterContainer, t("All"));
     Object.keys(LoadingMethod).forEach((key) => this.addFilterButton(filterContainer, t(LoadingMethod[key]) || key, key));
     new import_obsidian6.Setting(pluginsContent).addText((text) => text.setPlaceholder(t("Type to filter list")).onChange((value) => {
@@ -1481,6 +1897,7 @@ var PluginsSettingsView = class {
   }
   buildPluginList() {
     this.pluginListContainer.empty();
+    this.dropdowns = [];
     this.manager.updateManifests();
     this.manager.manifests.forEach((plugin) => {
       const currentValue = this.manager.getPluginStartup(plugin.id);
@@ -1492,8 +1909,10 @@ var PluginsSettingsView = class {
         this.dropdowns.push(dropdown);
         this.addDelayOptions(dropdown);
         dropdown.setValue(currentValue).onChange(async (value) => {
+          if (!isLoadingMethod(value))
+            return;
           await this.manager.updatePluginSettings(plugin.id, value);
-          this.manager.setPluginStartup(plugin.id);
+          await this.manager.setPluginStartup(plugin.id);
         });
       }).then((setting) => {
         if (this.manager.deviceSettings.showDescriptions) {
@@ -1696,6 +2115,11 @@ function snippetsMenu(app, manager, settings) {
 var SnippetsManager = class {
   constructor(app, plugin) {
     this.isLoaded = false;
+    this.statusBarSetupTimer = null;
+    this.loadGeneration = 0;
+    this.statusBarClickHandler = () => {
+      snippetsMenu(this.app, this, this.settings);
+    };
     this.app = app;
     this.plugin = plugin;
     this.settings = this.plugin.settings.mySnippets;
@@ -1704,15 +2128,23 @@ var SnippetsManager = class {
     if (this.isLoaded)
       return;
     this.isLoaded = true;
+    const generation = ++this.loadGeneration;
     console.log(t("Loading MySnippets module..."));
     addIcons();
     if (this.app.workspace.layoutReady) {
       this.setupSnippetsStatusBarIcon();
     } else {
       this.app.workspace.onLayoutReady(() => {
-        setTimeout(() => {
+        if (generation !== this.loadGeneration)
+          return;
+        if (!this.isLoaded)
+          return;
+        this.statusBarSetupTimer = window.setTimeout(() => {
+          this.statusBarSetupTimer = null;
+          if (generation !== this.loadGeneration)
+            return;
           this.setupSnippetsStatusBarIcon();
-        });
+        }, 0);
       });
     }
   }
@@ -1728,17 +2160,22 @@ var SnippetsManager = class {
     if (!this.isLoaded)
       return;
     this.isLoaded = false;
+    this.loadGeneration++;
     console.log(t("Unloading MySnippets module..."));
+    if (this.statusBarSetupTimer !== null) {
+      window.clearTimeout(this.statusBarSetupTimer);
+      this.statusBarSetupTimer = null;
+    }
     if (this.statusBarIcon) {
-      this.statusBarIcon.remove();
-      this.statusBarIcon = void 0;
+      this.removeStatusBarIcon();
     }
   }
   setupSnippetsStatusBarIcon() {
+    if (!this.isLoaded || !this.settings.enabled)
+      return;
     if (!this.settings.showStatusBarIcon) {
       if (this.statusBarIcon) {
-        this.statusBarIcon.remove();
-        this.statusBarIcon = void 0;
+        this.removeStatusBarIcon();
       }
       return;
     }
@@ -1752,12 +2189,17 @@ var SnippetsManager = class {
       "aria-label-position": "top"
     });
     (0, import_obsidian10.setIcon)(this.statusBarIcon, "pantone-line");
-    this.plugin.registerDomEvent(this.statusBarIcon, "click", () => {
-      snippetsMenu(this.app, this, this.settings);
-    });
+    this.statusBarIcon.addEventListener("click", this.statusBarClickHandler);
   }
   updateStatusBar() {
     this.setupSnippetsStatusBarIcon();
+  }
+  removeStatusBarIcon() {
+    if (!this.statusBarIcon)
+      return;
+    this.statusBarIcon.removeEventListener("click", this.statusBarClickHandler);
+    this.statusBarIcon.remove();
+    this.statusBarIcon = void 0;
   }
   saveSettings() {
     return this.plugin.saveSettings();
@@ -1952,7 +2394,9 @@ var SidebarSideController = class {
 var AutoHideFeature = class {
   constructor(app, plugin) {
     this.layoutChangeRef = null;
+    this.isLoading = false;
     this.isInitialized = false;
+    this.loadGeneration = 0;
     this.resizeObserver = null;
     this.editorWidth = 0;
     this.rafId = null;
@@ -1963,18 +2407,32 @@ var AutoHideFeature = class {
     return this.plugin.settings.mySideBar.autoHide;
   }
   onload() {
+    if (this.isLoading || this.isInitialized || !this.settings.enabled)
+      return;
+    this.isLoading = true;
+    const generation = ++this.loadGeneration;
     if (this.settings.overlayMode) {
       document.body.classList.add("sidebar-overlay-mode");
     }
+    document.body.classList.remove("obsidian-assistant-overlay-mode");
     document.body.classList.add("open-sidebar-hover-plugin");
     this.updateCSSVariables();
-    this.app.workspace.onLayoutReady(() => {
+    const runInit = () => {
+      if (generation !== this.loadGeneration)
+        return;
+      if (!this.isLoading)
+        return;
       this.init();
-    });
+    };
+    if (this.app.workspace.layoutReady)
+      runInit();
+    else
+      this.app.workspace.onLayoutReady(runInit);
   }
   init() {
     if (this.isInitialized)
       return;
+    this.isLoading = false;
     this.isInitialized = true;
     const leftSplit = this.app.workspace.leftSplit;
     const rightSplit = this.app.workspace.rightSplit;
@@ -2042,12 +2500,18 @@ var AutoHideFeature = class {
   }
   onunload() {
     var _a, _b;
+    this.isLoading = false;
+    this.loadGeneration++;
+    document.body.classList.remove("sidebar-overlay-mode");
+    document.body.classList.remove("obsidian-assistant-overlay-mode");
+    document.body.classList.remove("open-sidebar-hover-plugin");
+    const styleEl = document.getElementById("obsidian-assistant-sidebar-variables");
+    if (styleEl)
+      styleEl.remove();
     if (!this.isInitialized)
       return;
     (_a = this.leftController) == null ? void 0 : _a.cleanup();
     (_b = this.rightController) == null ? void 0 : _b.cleanup();
-    document.body.classList.remove("sidebar-overlay-mode");
-    document.body.classList.remove("open-sidebar-hover-plugin");
     document.removeEventListener("mousemove", this.mouseMoveHandler);
     if (this.documentClickHandler)
       document.removeEventListener("click", this.documentClickHandler);
@@ -2064,9 +2528,6 @@ var AutoHideFeature = class {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
-    const styleEl = document.getElementById("obsidian-assistant-sidebar-variables");
-    if (styleEl)
-      styleEl.remove();
     if (this.layoutChangeRef) {
       this.app.workspace.offref(this.layoutChangeRef);
       this.layoutChangeRef = null;
@@ -2194,45 +2655,230 @@ var AutoHideFeature = class {
 };
 
 // src/sidebar/features/ribbon.ts
+var import_obsidian13 = require("obsidian");
+
+// src/utils/icon.ts
+var import_obsidian12 = require("obsidian");
+var SVG_TAGS = /* @__PURE__ */ new Set([
+  "svg",
+  "g",
+  "path",
+  "circle",
+  "rect",
+  "line",
+  "polyline",
+  "polygon",
+  "ellipse",
+  "defs",
+  "clipPath",
+  "mask",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+  "title",
+  "desc"
+]);
+var SVG_ATTRS = /* @__PURE__ */ new Set([
+  "aria-hidden",
+  "aria-label",
+  "class",
+  "clip-path",
+  "cx",
+  "cy",
+  "d",
+  "fill",
+  "fill-rule",
+  "height",
+  "id",
+  "mask",
+  "opacity",
+  "points",
+  "r",
+  "rx",
+  "ry",
+  "stroke",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-width",
+  "style",
+  "transform",
+  "viewBox",
+  "width",
+  "x",
+  "x1",
+  "x2",
+  "y",
+  "y1",
+  "y2"
+]);
+var DANGEROUS_VALUE = /(javascript:|data:text\/html|vbscript:)/i;
+var EXTERNAL_URL_VALUE = /url\(\s*['"]?(?!#)/i;
+function clearElement(el) {
+  while (el.firstChild)
+    el.removeChild(el.firstChild);
+}
+function isSvgMarkup(value) {
+  const trimmed = value.trim();
+  return trimmed.startsWith("<svg") || trimmed.includes("xmlns=");
+}
+function sanitizeStyle(value) {
+  return value.split(";").map((item) => item.trim()).filter((item) => item && !DANGEROUS_VALUE.test(item) && !/url\s*\(/i.test(item)).join("; ");
+}
+function sanitizeElement(el) {
+  const tag = el.tagName.toLowerCase();
+  if (!SVG_TAGS.has(tag))
+    return false;
+  Array.from(el.attributes).forEach((attr) => {
+    const name = attr.name;
+    const lower = name.toLowerCase();
+    const value = attr.value;
+    if (lower.startsWith("on") || DANGEROUS_VALUE.test(value) || EXTERNAL_URL_VALUE.test(value) || !SVG_ATTRS.has(name)) {
+      el.removeAttribute(name);
+      return;
+    }
+    if (lower === "style") {
+      const sanitized = sanitizeStyle(value);
+      if (sanitized)
+        el.setAttribute(name, sanitized);
+      else
+        el.removeAttribute(name);
+    }
+  });
+  Array.from(el.children).forEach((child) => {
+    if (!sanitizeElement(child))
+      child.remove();
+  });
+  return true;
+}
+function sanitizeSvgIcon(value) {
+  if (!value)
+    return void 0;
+  const trimmed = value.trim();
+  if (!isSvgMarkup(trimmed))
+    return void 0;
+  const template = document.createElement("template");
+  template.innerHTML = trimmed;
+  const svg = template.content.firstElementChild;
+  if (!svg || svg.tagName.toLowerCase() !== "svg")
+    return void 0;
+  if (!sanitizeElement(svg))
+    return void 0;
+  return svg.outerHTML;
+}
+function appendSanitizedSvg(target, svgMarkup) {
+  const sanitized = sanitizeSvgIcon(svgMarkup);
+  if (!sanitized)
+    return false;
+  const template = document.createElement("template");
+  template.innerHTML = sanitized;
+  const svg = template.content.firstElementChild;
+  if (!svg)
+    return false;
+  target.appendChild(svg);
+  return true;
+}
+function renderIconLike(target, icon, fallbackIcon = "box") {
+  clearElement(target);
+  if (!icon) {
+    (0, import_obsidian12.setIcon)(target, fallbackIcon);
+    return;
+  }
+  const trimmed = icon.trim();
+  if (isSvgMarkup(trimmed)) {
+    if (appendSanitizedSvg(target, trimmed))
+      return;
+    (0, import_obsidian12.setIcon)(target, fallbackIcon);
+    return;
+  }
+  if (!trimmed.includes("<") && !trimmed.includes(">")) {
+    (0, import_obsidian12.setIcon)(target, trimmed);
+    return;
+  }
+  (0, import_obsidian12.setIcon)(target, fallbackIcon);
+}
+function getElementSvgIcon(el) {
+  const svg = el.querySelector("svg");
+  return svg ? sanitizeSvgIcon(svg.outerHTML) : void 0;
+}
+
+// src/sidebar/features/ribbon.ts
 var RibbonFeature = class {
   constructor(app, plugin) {
+    this.ribbonActions = null;
+    this.ribbonSettings = null;
+    this.observer = null;
     // Debounce timer for observer
     this.observerTimer = null;
+    this.initTimer = null;
     this.isInternalChange = false;
+    this.isLoaded = false;
+    this.loadGeneration = 0;
+    this.originalPlacements = /* @__PURE__ */ new Map();
     this.app = app;
     this.plugin = plugin;
   }
   get settings() {
+    if (!this.plugin.settings.mySideBar.ribbon) {
+      this.plugin.settings.mySideBar.ribbon = {
+        ...DEFAULT_MY_SIDEBAR_SETTINGS.ribbon,
+        elements: {}
+      };
+    }
     return this.plugin.settings.mySideBar.ribbon;
   }
   async onload() {
-    var _a;
-    if (!((_a = this.plugin.settings.mySideBar) == null ? void 0 : _a.ribbon)) {
-      if (!this.plugin.settings.mySideBar) {
-        this.plugin.settings.mySideBar = {};
-      }
-      this.plugin.settings.mySideBar.ribbon = { elements: {} };
-      await this.plugin.saveSettings();
-    }
-    this.app.workspace.onLayoutReady(() => {
+    if (this.isLoaded || !this.settings.enabled)
+      return;
+    this.isLoaded = true;
+    const generation = ++this.loadGeneration;
+    const runInit = () => {
+      if (generation !== this.loadGeneration)
+        return;
+      if (!this.isLoaded)
+        return;
       this.init();
-    });
+    };
+    if (this.app.workspace.layoutReady)
+      runInit();
+    else
+      this.app.workspace.onLayoutReady(runInit);
   }
   onunload() {
+    var _a;
+    this.isLoaded = false;
+    this.loadGeneration++;
+    if (this.initTimer !== null) {
+      window.clearTimeout(this.initTimer);
+      this.initTimer = null;
+    }
+    if (this.observerTimer !== null) {
+      window.clearTimeout(this.observerTimer);
+      this.observerTimer = null;
+    }
     if (this.observer) {
       this.observer.disconnect();
+      this.observer = null;
     }
     const resetEl = (el) => {
       el.style.removeProperty("order");
       el.style.removeProperty("display");
       el.removeClass("assistant-ribbon-hidden");
     };
+    (_a = this.ribbonActions) == null ? void 0 : _a.removeClass("assistant-ribbon-loading");
     if (this.ribbonActions)
       Array.from(this.ribbonActions.children).forEach((el) => resetEl(el));
     if (this.ribbonSettings)
       Array.from(this.ribbonSettings.children).forEach((el) => resetEl(el));
+    this.restoreOriginalPlacements();
+    this.ribbonActions = null;
+    this.ribbonSettings = null;
   }
   init() {
+    var _a;
+    if (!this.isLoaded)
+      return;
+    if (this.initTimer !== null || this.observer !== null)
+      return;
     const ribbon = document.querySelector(".workspace-ribbon.mod-left");
     if (!ribbon)
       return;
@@ -2240,19 +2886,25 @@ var RibbonFeature = class {
     this.ribbonSettings = ribbon.querySelector(".side-dock-settings");
     if (!this.ribbonActions && !this.ribbonSettings)
       return;
-    this.ribbonActions.addClass("assistant-ribbon-loading");
+    (_a = this.ribbonActions) == null ? void 0 : _a.addClass("assistant-ribbon-loading");
     const configuredDelay = this.plugin.settings.mySideBar.ribbon.ribbonDisplayDelay || 1e3;
     let delayMs = configuredDelay;
     if (this.plugin.settings.myPlugins.enabled) {
-      const deviceSettings = this.plugin.settings.myPlugins.dualConfigs && this.app.isMobile ? this.plugin.settings.myPlugins.mobile || this.plugin.settings.myPlugins.desktop : this.plugin.settings.myPlugins.desktop;
+      const deviceSettings = this.plugin.settings.myPlugins.dualConfigs && import_obsidian13.Platform.isMobile ? this.plugin.settings.myPlugins.mobile || this.plugin.settings.myPlugins.desktop : this.plugin.settings.myPlugins.desktop;
       const maxDelay = Math.max(deviceSettings.shortDelaySeconds, deviceSettings.longDelaySeconds);
       delayMs = maxDelay * 1e3 + configuredDelay;
     } else {
       delayMs = configuredDelay;
     }
-    setTimeout(async () => {
+    this.initTimer = window.setTimeout(async () => {
+      var _a2;
+      this.initTimer = null;
+      if (!this.isLoaded)
+        return;
       await this.processRibbon();
-      this.ribbonActions.removeClass("assistant-ribbon-loading");
+      if (!this.isLoaded)
+        return;
+      (_a2 = this.ribbonActions) == null ? void 0 : _a2.removeClass("assistant-ribbon-loading");
       this.observer = new MutationObserver((mutations) => {
         if (this.isInternalChange)
           return;
@@ -2267,6 +2919,8 @@ var RibbonFeature = class {
           this.scheduleProcess();
         }
       });
+      if (!this.isLoaded)
+        return;
       if (this.ribbonActions)
         this.observer.observe(this.ribbonActions, { childList: true });
       if (this.ribbonSettings)
@@ -2274,17 +2928,20 @@ var RibbonFeature = class {
     }, delayMs);
   }
   scheduleProcess() {
+    if (!this.isLoaded)
+      return;
     if (this.observerTimer !== null) {
       window.clearTimeout(this.observerTimer);
     }
     this.observerTimer = window.setTimeout(() => {
-      this.processRibbon();
+      if (!this.isLoaded)
+        return;
+      void this.processRibbon().catch((e) => console.error("Assistant: Failed to process ribbon", e));
       this.observerTimer = null;
     }, 200);
   }
   async processRibbon() {
-    var _a, _b;
-    if (!this.ribbonActions && !this.ribbonSettings)
+    if (!this.isLoaded || !this.ribbonActions && !this.ribbonSettings)
       return;
     const actionsChildren = this.ribbonActions ? Array.from(this.ribbonActions.children) : [];
     const settingsChildren = this.ribbonSettings ? Array.from(this.ribbonSettings.children) : [];
@@ -2316,12 +2973,12 @@ var RibbonFeature = class {
           name: id,
           visible: true,
           order: maxOrder,
-          icon: ((_a = el.querySelector("svg")) == null ? void 0 : _a.outerHTML) || el.innerHTML
+          icon: getElementSvgIcon(el)
         };
         settingsElements[id] = newEl;
         changed = true;
       } else {
-        const icon = ((_b = el.querySelector("svg")) == null ? void 0 : _b.outerHTML) || el.innerHTML;
+        const icon = getElementSvgIcon(el);
         if (icon && settingsElements[id].icon !== icon) {
           settingsElements[id].icon = icon;
           changed = true;
@@ -2329,27 +2986,28 @@ var RibbonFeature = class {
       }
     }
     this.isInternalChange = true;
-    const sortedIDs = Object.keys(settingsElements).sort((a, b) => settingsElements[a].order - settingsElements[b].order);
-    for (const id of sortedIDs) {
-      const setting = settingsElements[id];
-      const el = domElementsMap.get(id);
-      if (el) {
-        if (setting.visible) {
-          el.style.setProperty("display", "flex", "important");
-          el.removeClass("assistant-ribbon-hidden");
-        } else {
-          el.style.setProperty("display", "none", "important");
-          el.addClass("assistant-ribbon-hidden");
-        }
-        if (this.ribbonActions && el.parentElement !== this.ribbonActions) {
-          this.ribbonActions.appendChild(el);
-        }
-        if (this.ribbonActions) {
-          this.ribbonActions.appendChild(el);
+    try {
+      const sortedIDs = Object.keys(settingsElements).sort((a, b) => settingsElements[a].order - settingsElements[b].order);
+      for (const id of sortedIDs) {
+        const setting = settingsElements[id];
+        const el = domElementsMap.get(id);
+        if (el) {
+          if (setting.visible) {
+            el.style.setProperty("display", "flex", "important");
+            el.removeClass("assistant-ribbon-hidden");
+          } else {
+            el.style.setProperty("display", "none", "important");
+            el.addClass("assistant-ribbon-hidden");
+          }
+          if (this.ribbonActions) {
+            this.rememberPlacement(el);
+            this.ribbonActions.appendChild(el);
+          }
         }
       }
+    } finally {
+      this.isInternalChange = false;
     }
-    this.isInternalChange = false;
     if (changed) {
       await this.plugin.saveSettings();
     }
@@ -2370,10 +3028,51 @@ var RibbonFeature = class {
     await this.plugin.saveSettings();
     await this.processRibbon();
   }
+  refreshAfterSoftStartup() {
+    if (!this.isLoaded)
+      return;
+    if (this.initTimer !== null)
+      return;
+    if (!this.ribbonActions && !this.ribbonSettings)
+      this.init();
+    else
+      this.scheduleProcess();
+  }
+  rememberPlacement(el) {
+    if (this.originalPlacements.has(el) || !el.parentElement)
+      return;
+    const parent = el.parentElement;
+    const marker = document.createComment("obsidian-assistant-ribbon-placement");
+    parent.insertBefore(marker, el);
+    this.originalPlacements.set(el, {
+      parent,
+      nextSibling: el.nextSibling,
+      marker
+    });
+  }
+  restoreOriginalPlacements() {
+    this.originalPlacements.forEach((placement, el) => {
+      var _a;
+      if (!el.isConnected) {
+        placement.marker.remove();
+        return;
+      }
+      if (placement.marker.parentNode) {
+        placement.marker.parentNode.insertBefore(el, placement.marker);
+        placement.marker.remove();
+        return;
+      }
+      if (!placement.parent.isConnected || !el.isConnected)
+        return;
+      const nextSibling = ((_a = placement.nextSibling) == null ? void 0 : _a.parentNode) === placement.parent ? placement.nextSibling : null;
+      placement.parent.insertBefore(el, nextSibling);
+    });
+    this.originalPlacements.clear();
+  }
 };
 
 // src/sidebar/features/tabs.ts
-var import_obsidian12 = require("obsidian");
+var import_obsidian14 = require("obsidian");
 var IGNORED_VIEW_ICONS = /* @__PURE__ */ new Set([
   "",
   "help",
@@ -2401,24 +3100,48 @@ function getSidebarTabIcon(leaf) {
 var SidebarTabsFeature = class {
   constructor(app, plugin) {
     this.scanTimer = null;
+    this.isLoaded = false;
+    this.refreshTimer = null;
+    this.isRefreshing = false;
+    this.refreshRequestId = 0;
+    this.appliedRefreshId = 0;
+    this.loadGeneration = 0;
     this.app = app;
     this.plugin = plugin;
   }
   async onload() {
     var _a;
-    if (!((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled))
+    if (this.isLoaded || !((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled))
       return;
-    this.app.workspace.onLayoutReady(() => {
+    this.isLoaded = true;
+    const generation = ++this.loadGeneration;
+    const scheduleScan = () => {
+      if (generation !== this.loadGeneration)
+        return;
+      if (!this.isLoaded)
+        return;
+      if (this.scanTimer !== null)
+        return;
       this.scanTimer = window.setTimeout(() => {
-        this.scanAndApply({ preserveHidden: true });
+        if (generation !== this.loadGeneration)
+          return;
+        if (!this.isLoaded)
+          return;
+        void this.scanAndApply({ preserveHidden: true }).catch((e) => console.error("Assistant: Failed to scan sidebar tabs", e));
         this.scanTimer = null;
       }, 1e3);
-    });
+    };
+    if (this.app.workspace.layoutReady)
+      scheduleScan();
+    else
+      this.app.workspace.onLayoutReady(scheduleScan);
   }
   async scanAndApply(options = {}) {
-    if (!this.plugin.settings.mySideBar.tabs.enabled)
+    if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled)
       return;
     await this.scan(options);
+    if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled)
+      return;
     await this.applyLayout();
   }
   async scan(options = {}) {
@@ -2429,7 +3152,7 @@ var SidebarTabsFeature = class {
     const processSplit = (split, side) => {
       if (!split)
         return;
-      this.app.workspace.iterateLeaves((leaf) => {
+      this.iterateLeavesInSplit(split, (leaf) => {
         const viewType = leaf.view.getViewType();
         if (leaf.view.containerEl.dataset.assistantContextualSlave === "true")
           return;
@@ -2486,7 +3209,7 @@ var SidebarTabsFeature = class {
           }
         }
         order++;
-      }, split);
+      });
     };
     processSplit(this.app.workspace.leftSplit, "left");
     processSplit(this.app.workspace.rightSplit, "right");
@@ -2515,7 +3238,7 @@ var SidebarTabsFeature = class {
   }
   async applyLayout() {
     const settings = this.plugin.settings.mySideBar.tabs;
-    if (!settings.enabled)
+    if (!this.isLoaded || !settings.enabled)
       return;
     const elements = Object.values(settings.elements);
     const leftItems = elements.filter((e) => e.side === "left" && e.visible).sort((a, b) => a.order - b.order);
@@ -2524,11 +3247,11 @@ var SidebarTabsFeature = class {
       if (!split)
         return [];
       const ids = [];
-      this.app.workspace.iterateLeaves((leaf) => {
+      this.iterateLeavesInSplit(split, (leaf) => {
         if (leaf.view.containerEl.dataset.assistantContextualSlave === "true")
           return;
         ids.push(leaf.view.getViewType());
-      }, split);
+      });
       return ids;
     };
     const currentLeft = getSplitIds(this.app.workspace.leftSplit);
@@ -2547,35 +3270,47 @@ var SidebarTabsFeature = class {
         return;
       if (!split)
         return;
-      this.app.workspace.iterateLeaves((leaf) => {
+      this.iterateLeavesInSplit(split, (leaf) => {
         const type = leaf.view.getViewType();
         if (settings.elements[type]) {
           viewStates[type] = leaf.getViewState();
           leavesToDetach.push(leaf);
         }
-      }, split);
+      });
     };
     processSide(this.app.workspace.leftSplit, isLeftMatch);
     processSide(this.app.workspace.rightSplit, isRightMatch);
+    if (!this.isLoaded || !settings.enabled)
+      return;
     leavesToDetach.forEach((leaf) => leaf.detach());
+    if (!this.isLoaded || !settings.enabled)
+      return;
     if (!isLeftMatch)
       await this.openInSplit(leftItems, "left", viewStates);
+    if (!this.isLoaded || !settings.enabled)
+      return;
     if (!isRightMatch)
       await this.openInSplit(rightItems, "right", viewStates);
   }
   async openInSplit(items, side, viewStates) {
     for (const item of items) {
-      let leaf;
-      if (side === "left")
-        leaf = this.app.workspace.getLeftLeaf(false);
-      else
-        leaf = this.app.workspace.getRightLeaf(false);
+      if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled)
+        return;
+      const leaf = side === "left" ? this.app.workspace.getLeftLeaf(false) : this.app.workspace.getRightLeaf(false);
+      if (!leaf) {
+        console.error(`Assistant: Failed to create ${side} sidebar leaf for ${item.id}`);
+        continue;
+      }
       let state = viewStates[item.id];
       if (!state) {
         state = { type: item.id };
       }
       try {
         await leaf.setViewState(state);
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled) {
+          leaf.detach();
+          return;
+        }
       } catch (e) {
         console.error(`Assistant: Failed to restore tab ${item.id}`, e);
         leaf.detach();
@@ -2600,7 +3335,7 @@ var SidebarTabsFeature = class {
           return true;
         });
         if (settings.bindings.length < initialLength) {
-          new import_obsidian12.Notice(t("Binding Removed"));
+          new import_obsidian14.Notice(t("Binding Removed"));
         }
       }
       await this.plugin.saveSettings();
@@ -2608,15 +3343,71 @@ var SidebarTabsFeature = class {
     }
   }
   onunload() {
+    this.isLoaded = false;
+    this.loadGeneration++;
     if (this.scanTimer) {
       window.clearTimeout(this.scanTimer);
       this.scanTimer = null;
     }
+    if (this.refreshTimer !== null) {
+      window.clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+    this.isRefreshing = false;
+    this.refreshRequestId = 0;
+    this.appliedRefreshId = 0;
+  }
+  refreshAfterSoftStartup() {
+    if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled)
+      return;
+    this.refreshRequestId++;
+    if (this.isRefreshing) {
+      return;
+    }
+    if (this.refreshTimer !== null) {
+      window.clearTimeout(this.refreshTimer);
+    }
+    this.refreshTimer = window.setTimeout(() => {
+      this.refreshTimer = null;
+      void this.runSoftStartupRefresh().catch((e) => console.error("Assistant: Failed to refresh sidebar tabs", e));
+    }, 250);
+  }
+  async runSoftStartupRefresh() {
+    if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs.enabled)
+      return;
+    if (this.isRefreshing) {
+      return;
+    }
+    this.isRefreshing = true;
+    try {
+      while (this.appliedRefreshId < this.refreshRequestId && this.isLoaded && this.plugin.settings.mySideBar.tabs.enabled) {
+        this.appliedRefreshId = this.refreshRequestId;
+        await this.scanAndApply({ preserveHidden: true });
+      }
+    } finally {
+      this.isRefreshing = false;
+      if (this.appliedRefreshId < this.refreshRequestId && this.isLoaded && this.plugin.settings.mySideBar.tabs.enabled) {
+        void this.runSoftStartupRefresh().catch((e) => console.error("Assistant: Failed to refresh sidebar tabs", e));
+      }
+    }
+  }
+  iterateLeavesInSplit(split, callback) {
+    const visit = (item) => {
+      var _a;
+      const maybeLeaf = item;
+      if (maybeLeaf.view && typeof maybeLeaf.view.getViewType === "function") {
+        callback(maybeLeaf);
+        return;
+      }
+      const parent = item;
+      (_a = parent.children) == null ? void 0 : _a.forEach((child) => visit(child));
+    };
+    visit(split);
   }
 };
 
 // src/sidebar/features/contextual-split.ts
-var import_obsidian13 = require("obsidian");
+var import_obsidian15 = require("obsidian");
 var ContextualSplitFeature = class {
   constructor(app, plugin) {
     // Store original visual states of master tabs: { "side-viewType": { icon: string, title: string } }
@@ -2626,18 +3417,27 @@ var ContextualSplitFeature = class {
     this.activeBindings = /* @__PURE__ */ new Map();
     this.listeners = [];
     this.observer = null;
+    this.isLoaded = false;
+    this.loadGeneration = 0;
     this.app = app;
     this.plugin = plugin;
   }
   onload() {
-    if (this.listeners.length > 0) {
-      this.onunload();
-    }
-    this.observer = new MutationObserver((0, import_obsidian13.debounce)(() => {
+    if (this.isLoaded)
+      return;
+    this.isLoaded = true;
+    const generation = ++this.loadGeneration;
+    this.observer = new MutationObserver((0, import_obsidian15.debounce)(() => {
+      if (!this.isLoaded)
+        return;
       this.applyAllMasquerades();
     }, 50));
     const runInit = () => {
       var _a, _b;
+      if (generation !== this.loadGeneration)
+        return;
+      if (!this.isLoaded)
+        return;
       this.cleanOrphans();
       const leftSplit = this.app.workspace.leftSplit;
       const rightSplit = this.app.workspace.rightSplit;
@@ -2657,32 +3457,38 @@ var ContextualSplitFeature = class {
       });
     }
     this.listeners.push(
-      this.app.workspace.on("layout-change", (0, import_obsidian13.debounce)(() => {
+      this.app.workspace.on("layout-change", (0, import_obsidian15.debounce)(() => {
+        if (!this.isLoaded)
+          return;
         this.applyAllMasquerades();
         this.checkActiveBindingValidity();
       }, 200))
     );
     this.listeners.push(
-      this.app.workspace.on("resize", (0, import_obsidian13.debounce)(() => {
+      this.app.workspace.on("resize", (0, import_obsidian15.debounce)(() => {
+        if (!this.isLoaded)
+          return;
         this.saveSplitState();
       }, 500))
     );
     this.listeners.push(
-      this.app.workspace.on("active-leaf-change", (0, import_obsidian13.debounce)((leaf) => {
-        if (leaf)
+      this.app.workspace.on("active-leaf-change", (0, import_obsidian15.debounce)((leaf) => {
+        if (this.isLoaded && leaf)
           this.handleActiveLeaf(leaf);
       }, 50, true))
     );
   }
   onunload() {
+    this.isLoaded = false;
+    this.loadGeneration++;
     this.listeners.forEach((ref) => this.app.workspace.offref(ref));
     this.listeners = [];
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
     }
-    this.activeBindings.forEach((binding) => {
-      this.cleanupSplit(binding);
+    this.activeBindings.forEach((binding, side) => {
+      this.cleanupSplit(binding, side);
     });
     this.activeBindings.clear();
     const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
@@ -2696,12 +3502,15 @@ var ContextualSplitFeature = class {
       if (!split)
         return;
       const toDetach = [];
-      this.app.workspace.iterateLeaves((leaf) => {
+      this.iterateLeavesInSplit(split, (leaf) => {
         if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
           toDetach.push(leaf);
         }
-      }, split);
-      toDetach.forEach((l) => l.detach());
+      });
+      toDetach.forEach((l) => {
+        this.removeHiddenHeader(l);
+        l.detach();
+      });
     };
     removeOrphans(this.app.workspace.leftSplit);
     removeOrphans(this.app.workspace.rightSplit);
@@ -2749,7 +3558,7 @@ var ContextualSplitFeature = class {
     const currentActive = this.activeBindings.get(side);
     if (matchingBinding) {
       if (currentActive && currentActive !== matchingBinding) {
-        await this.cleanupSplit(currentActive);
+        await this.cleanupSplit(currentActive, side);
       }
       this.activeBindings.set(side, matchingBinding);
       await this.activateSplit(leaf, matchingBinding);
@@ -2763,7 +3572,7 @@ var ContextualSplitFeature = class {
         if (this.isMasterVisible(currentActive.masterId, side)) {
           return;
         }
-        await this.cleanupSplit(currentActive);
+        await this.cleanupSplit(currentActive, side);
         this.activeBindings.delete(side);
       }
     }
@@ -2777,7 +3586,7 @@ var ContextualSplitFeature = class {
         if (this.isMasterVisible(binding.masterId, side)) {
           if (currentActive !== binding) {
             if (currentActive)
-              this.cleanupSplit(currentActive);
+              this.cleanupSplit(currentActive, side);
             this.activeBindings.set(side, binding);
             const leaves = this.findLeavesByType(binding.masterId);
             const sideLeaf = leaves.find((l) => this.getLeafSide(l) === side && l.view.containerEl.isShown());
@@ -2788,7 +3597,7 @@ var ContextualSplitFeature = class {
         }
       }
       if (currentActive) {
-        this.cleanupSplit(currentActive);
+        this.cleanupSplit(currentActive, side);
         this.activeBindings.delete(side);
       }
     });
@@ -2805,7 +3614,7 @@ var ContextualSplitFeature = class {
   }
   saveSplitState() {
     this.activeBindings.forEach((binding, side) => {
-      const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
+      const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
       if (slaveLeaf) {
         const slaveSide = this.getLeafSide(slaveLeaf);
         if (slaveSide !== side)
@@ -2827,10 +3636,23 @@ var ContextualSplitFeature = class {
     });
   }
   async activateSplit(masterLeaf, binding) {
-    let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
+    const side = this.getLeafSide(masterLeaf);
+    if (side === "unknown")
+      return;
+    let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
     if (!slaveLeaf) {
       slaveLeaf = this.app.workspace.createLeafBySplit(masterLeaf, "horizontal");
-      await slaveLeaf.setViewState({ type: binding.slaveId });
+      try {
+        await slaveLeaf.setViewState({ type: binding.slaveId });
+      } catch (e) {
+        console.error("Assistant: Failed to create contextual split slave", e);
+        slaveLeaf.detach();
+        return;
+      }
+      if (!this.isLoaded) {
+        slaveLeaf.detach();
+        return;
+      }
       slaveLeaf.view.containerEl.dataset.assistantContextualSlave = "true";
     }
     const parent = slaveLeaf.parent;
@@ -2856,7 +3678,7 @@ var ContextualSplitFeature = class {
                 sibling.setDimension(100 - dim);
               }
             } catch (e) {
-              console.error("Assistant Assistant: Failed to set split dimension", e);
+              console.error("Assistant: Failed to set split dimension", e);
             }
           } else {
             try {
@@ -2864,20 +3686,26 @@ var ContextualSplitFeature = class {
                 parent.setDimension(dim);
               }
             } catch (e) {
-              console.error("Assistant Assistant: Failed to set split dimension (fallback)", e);
+              console.error("Assistant: Failed to set split dimension (fallback)", e);
             }
           }
         }
       }
     }
   }
-  async cleanupSplit(binding) {
-    const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId);
+  async cleanupSplit(binding, side) {
+    const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
     if (slaveLeaf) {
       if (slaveLeaf.view.containerEl.dataset.assistantContextualSlave === "true") {
+        this.removeHiddenHeader(slaveLeaf);
         slaveLeaf.detach();
       }
     }
+  }
+  removeHiddenHeader(leaf) {
+    var _a;
+    const parent = leaf.parent;
+    (_a = parent == null ? void 0 : parent.containerEl) == null ? void 0 : _a.removeClass("contextual-split-hidden-header");
   }
   findLeavesByType(type) {
     const leaves = [];
@@ -2887,20 +3715,35 @@ var ContextualSplitFeature = class {
     });
     return leaves;
   }
-  findUniqueSlaveLeaf(type) {
+  findUniqueSlaveLeaf(type, side) {
     let found = null;
     const checkSplit = (split) => {
       if (!split)
         return;
-      this.app.workspace.iterateLeaves((l) => {
+      this.iterateLeavesInSplit(split, (l) => {
+        if (side && this.getLeafSide(l) !== side)
+          return;
         if (l.view.getViewType() === type && l.view.containerEl.dataset.assistantContextualSlave === "true") {
           found = l;
         }
-      }, split);
+      });
     };
     checkSplit(this.app.workspace.leftSplit);
     checkSplit(this.app.workspace.rightSplit);
     return found;
+  }
+  iterateLeavesInSplit(split, callback) {
+    const visit = (item) => {
+      var _a;
+      const maybeLeaf = item;
+      if (maybeLeaf.view && typeof maybeLeaf.view.getViewType === "function") {
+        callback(maybeLeaf);
+        return;
+      }
+      const parent = item;
+      (_a = parent.children) == null ? void 0 : _a.forEach((child) => visit(child));
+    };
+    visit(split);
   }
   applyVisualOverride(leaf, binding) {
     if (!binding.groupName && !binding.groupSvg)
@@ -2926,16 +3769,7 @@ var ContextualSplitFeature = class {
         if (binding.groupSvg && binding.groupSvg.trim().length > 0) {
           const iconEl = header.querySelector(".workspace-tab-header-inner-icon");
           if (iconEl) {
-            const val = binding.groupSvg.trim();
-            if (val.startsWith("<svg")) {
-              iconEl.empty();
-              iconEl.innerHTML = val;
-            } else {
-              if (!val.includes("<") && !val.includes(">")) {
-                iconEl.empty();
-                (0, import_obsidian13.setIcon)(iconEl, val);
-              }
-            }
+            renderIconLike(iconEl, binding.groupSvg, "box");
           }
         }
         header.addClass("assistant-contextual-group-tab");
@@ -2959,7 +3793,7 @@ var ContextualSplitFeature = class {
         const iconEl = header.querySelector(".workspace-tab-header-inner-icon");
         if (iconEl) {
           iconEl.empty();
-          (0, import_obsidian13.setIcon)(iconEl, original.icon);
+          (0, import_obsidian15.setIcon)(iconEl, original.icon);
         }
         header.removeClass("assistant-contextual-group-tab");
       }
@@ -2971,6 +3805,7 @@ var ContextualSplitFeature = class {
 // src/sidebar/manager.ts
 var SidebarManager = class {
   constructor(app, plugin) {
+    this.isLoaded = false;
     this.app = app;
     this.plugin = plugin;
     this.autoHideFeature = new AutoHideFeature(app, plugin);
@@ -2980,6 +3815,9 @@ var SidebarManager = class {
   }
   async onload() {
     var _a, _b, _c;
+    if (this.isLoaded || !this.plugin.settings.mySideBar.enabled)
+      return;
+    this.isLoaded = true;
     if ((_a = this.plugin.settings.mySideBar.autoHide) == null ? void 0 : _a.enabled)
       this.autoHideFeature.onload();
     if ((_b = this.plugin.settings.mySideBar.ribbon) == null ? void 0 : _b.enabled)
@@ -2990,19 +3828,31 @@ var SidebarManager = class {
     }
   }
   onunload() {
+    if (!this.isLoaded)
+      return;
+    this.isLoaded = false;
     this.autoHideFeature.onunload();
     this.ribbonFeature.onunload();
     this.tabsFeature.onunload();
     this.contextualFeature.onunload();
   }
+  refreshAfterSoftStartup() {
+    var _a, _b;
+    if (!this.isLoaded || !this.plugin.settings.mySideBar.enabled)
+      return;
+    if ((_a = this.plugin.settings.mySideBar.ribbon) == null ? void 0 : _a.enabled)
+      this.ribbonFeature.refreshAfterSoftStartup();
+    if ((_b = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _b.enabled)
+      this.tabsFeature.refreshAfterSoftStartup();
+  }
 };
 
 // src/sidebar/settings-ui.ts
-var import_obsidian15 = require("obsidian");
+var import_obsidian17 = require("obsidian");
 
 // src/sidebar/group-modal.ts
-var import_obsidian14 = require("obsidian");
-var GroupModal = class extends import_obsidian14.Modal {
+var import_obsidian16 = require("obsidian");
+var GroupModal = class extends import_obsidian16.Modal {
   constructor(app, manager, onSubmit) {
     super(app);
     this.masterId = "";
@@ -3016,11 +3866,11 @@ var GroupModal = class extends import_obsidian14.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h2", { text: t("Add New Group") });
-    new import_obsidian14.Setting(contentEl).setName(t("Master View ID")).setDesc(t("The view ID of the main tab (will be replaced by the group tab)")).addText((text) => text.onChange((value) => this.masterId = value));
-    new import_obsidian14.Setting(contentEl).setName(t("Slave View ID")).setDesc(t("The view ID of the split tab (hidden until group is active)")).addText((text) => text.onChange((value) => this.slaveId = value));
-    new import_obsidian14.Setting(contentEl).setName(t("Group Name")).setDesc(t("Name to display on the tab")).addText((text) => text.onChange((value) => this.groupName = value));
-    new import_obsidian14.Setting(contentEl).setName(t("Group Icon")).setDesc(t("SVG Code or Lucide Icon Name")).addTextArea((text) => text.setPlaceholder('<svg...> or "star"').onChange((value) => this.groupSvg = value));
-    new import_obsidian14.Setting(contentEl).addButton((btn) => btn.setButtonText(t("Add Group")).setCta().onClick(async () => {
+    new import_obsidian16.Setting(contentEl).setName(t("Master View ID")).setDesc(t("The view ID of the main tab (will be replaced by the group tab)")).addText((text) => text.onChange((value) => this.masterId = value));
+    new import_obsidian16.Setting(contentEl).setName(t("Slave View ID")).setDesc(t("The view ID of the split tab (hidden until group is active)")).addText((text) => text.onChange((value) => this.slaveId = value));
+    new import_obsidian16.Setting(contentEl).setName(t("Group Name")).setDesc(t("Name to display on the tab")).addText((text) => text.onChange((value) => this.groupName = value));
+    new import_obsidian16.Setting(contentEl).setName(t("Group Icon")).setDesc(t("SVG Code or Lucide Icon Name")).addTextArea((text) => text.setPlaceholder('<svg...> or "star"').onChange((value) => this.groupSvg = value));
+    new import_obsidian16.Setting(contentEl).addButton((btn) => btn.setButtonText(t("Add Group")).setCta().onClick(async () => {
       if (await this.createGroup()) {
         this.close();
         this.onSubmit();
@@ -3034,23 +3884,23 @@ var GroupModal = class extends import_obsidian14.Modal {
   async createGroup() {
     const settings = this.manager.plugin.settings.mySideBar.tabs;
     if (!this.masterId || !this.slaveId) {
-      new import_obsidian14.Notice(t("Error: Invalid ID"));
+      new import_obsidian16.Notice(t("Error: Invalid ID"));
       return false;
     }
     const masterParams = settings.elements[this.masterId];
     const slaveParams = settings.elements[this.slaveId];
     if (!masterParams || !slaveParams) {
-      new import_obsidian14.Notice(t("Error: Invalid ID"));
+      new import_obsidian16.Notice(t("Error: Invalid ID"));
       return false;
     }
     if (masterParams.side !== slaveParams.side) {
-      new import_obsidian14.Notice(t("Error: Same Side"));
+      new import_obsidian16.Notice(t("Error: Same Side"));
       return false;
     }
     if (!settings.bindings)
       settings.bindings = [];
     if (settings.bindings.some((b) => b.masterId === this.masterId)) {
-      new import_obsidian14.Notice(t("Error: Master ID already bound"));
+      new import_obsidian16.Notice(t("Error: Master ID already bound"));
       return false;
     }
     const newBinding = {
@@ -3086,9 +3936,9 @@ function renderSidebarSettings(containerEl, manager) {
       manager.plugin.settings.mySideBar.autoHide.enabled = enabled;
       await manager.plugin.saveSettings();
       if (enabled)
-        manager.autoHideFeature.load();
+        manager.autoHideFeature.onload();
       else
-        manager.autoHideFeature.unload();
+        manager.autoHideFeature.onunload();
     },
     (contentEl) => {
       renderAutoHideSettings(contentEl, manager);
@@ -3121,8 +3971,13 @@ function renderSidebarSettings(containerEl, manager) {
         manager.plugin.settings.mySideBar.tabs = { ...DEFAULT_MY_SIDEBAR_SETTINGS.tabs };
       manager.plugin.settings.mySideBar.tabs.enabled = enabled;
       await manager.plugin.saveSettings();
-      if (enabled)
+      if (enabled) {
         await manager.tabsFeature.onload();
+        manager.contextualFeature.onload();
+      } else {
+        manager.contextualFeature.onunload();
+        manager.tabsFeature.onunload();
+      }
     },
     (contentEl) => {
       renderSidebarTabsSettings(contentEl, manager);
@@ -3146,7 +4001,7 @@ function createToggledSubSection(containerEl, title, isEnabled, onToggle, render
   titleEl.innerText = title;
   const toggleContainer = summary.createEl("span");
   toggleContainer.addEventListener("click", (e) => e.stopPropagation());
-  new import_obsidian15.ToggleComponent(toggleContainer).setValue(isEnabled).onChange((value) => {
+  new import_obsidian17.ToggleComponent(toggleContainer).setValue(isEnabled).onChange((value) => {
     onToggle(value);
   });
   const content = details.createEl("div");
@@ -3162,72 +4017,75 @@ function createToggledSubSection(containerEl, title, isEnabled, onToggle, render
 function renderAutoHideSettings(containerEl, manager) {
   const plugin = manager.plugin;
   const settings = plugin.settings.mySideBar.autoHide;
-  new import_obsidian15.Setting(containerEl).setName(t("Left sidebar hover")).setDesc(t("Enables the expansion and collapsing of the left sidebar on hover.")).addToggle((t2) => t2.setValue(settings.leftSidebar).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Left sidebar hover")).setDesc(t("Enables the expansion and collapsing of the left sidebar on hover.")).addToggle((t2) => t2.setValue(settings.leftSidebar).onChange(async (v) => {
     settings.leftSidebar = v;
     await plugin.saveSettings();
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Right sidebar hover")).setDesc(t("Enables the expansion and collapsing of the right sidebar on hover. Only collapses the right panel unless you have a right ribbon.")).addToggle((t2) => t2.setValue(settings.rightSidebar).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Right sidebar hover")).setDesc(t("Enables the expansion and collapsing of the right sidebar on hover. Only collapses the right panel unless you have a right ribbon.")).addToggle((t2) => t2.setValue(settings.rightSidebar).onChange(async (v) => {
     settings.rightSidebar = v;
     await plugin.saveSettings();
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Sync left and right")).setDesc(t("If enabled, hovering over the right sidebar will also expand the left sidebar at the same time, and vice versa. (Left and Right sidebar must both be enabled above)")).addToggle((t2) => t2.setValue(settings.syncLeftRight).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Sync left and right")).setDesc(t("If enabled, hovering over the right sidebar will also expand the left sidebar at the same time, and vice versa. (Left and Right sidebar must both be enabled above)")).addToggle((t2) => t2.setValue(settings.syncLeftRight).onChange(async (v) => {
     settings.syncLeftRight = v;
     await plugin.saveSettings();
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Overlay mode")).setDesc(t("When enabled, sidebars will slide over the main content without affecting the layout. When disabled, sidebars will expand by pushing content.")).addToggle((t2) => t2.setValue(settings.overlayMode).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Overlay mode")).setDesc(t("When enabled, sidebars will slide over the main content without affecting the layout. When disabled, sidebars will expand by pushing content.")).addToggle((t2) => t2.setValue(settings.overlayMode).onChange(async (v) => {
     settings.overlayMode = v;
-    document.body.toggleClass("obsidian-assistant-overlay-mode", v);
+    document.body.toggleClass("sidebar-overlay-mode", v);
     await plugin.saveSettings();
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Behavior")).setHeading();
-  new import_obsidian15.Setting(containerEl).setName(t("Left sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the left edge of the editor that will trigger the left sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.leftSideBarPixelTrigger)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Behavior")).setHeading();
+  new import_obsidian17.Setting(containerEl).setName(t("Left sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the left edge of the editor that will trigger the left sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.leftSideBarPixelTrigger)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.leftSideBarPixelTrigger = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Right sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the right edge of the editor that will trigger the right sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.rightSideBarPixelTrigger)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Right sidebar pixel trigger")).setDesc(t("Specify the number of pixels from the right edge of the editor that will trigger the right sidebar to open on hover (must be greater than 0)")).addText((text) => text.setValue(String(settings.rightSideBarPixelTrigger)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.rightSideBarPixelTrigger = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Timing")).setHeading();
-  new import_obsidian15.Setting(containerEl).setName(t("Sidebar collapse delay")).setDesc(t("The delay in milliseconds before the sidebar collapses after the mouse has left. Enter '0' to disable delay.")).addText((text) => text.setValue(String(settings.sidebarDelay)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Timing")).setHeading();
+  new import_obsidian17.Setting(containerEl).setName(t("Sidebar collapse delay")).setDesc(t("The delay in milliseconds before the sidebar collapses after the mouse has left. Enter '0' to disable delay.")).addText((text) => text.setValue(String(settings.sidebarDelay)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num >= 0) {
       settings.sidebarDelay = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Sidebar expand delay")).setDesc(t("The delay in milliseconds before the sidebar expands after hovering. Default is 200ms.")).addText((text) => text.setValue(String(settings.sidebarExpandDelay)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Sidebar expand delay")).setDesc(t("The delay in milliseconds before the sidebar expands after hovering. Default is 200ms.")).addText((text) => text.setValue(String(settings.sidebarExpandDelay)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num >= 0) {
       settings.sidebarExpandDelay = num;
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Expand/collapse animation speed")).setDesc(t("The speed of the sidebar expand/collapse animation in milliseconds.")).addText((text) => text.setValue(String(settings.expandCollapseSpeed)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Expand/collapse animation speed")).setDesc(t("The speed of the sidebar expand/collapse animation in milliseconds.")).addText((text) => text.setValue(String(settings.expandCollapseSpeed)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.expandCollapseSpeed = num;
+      manager.autoHideFeature.updateCSSVariables();
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Appearance")).setHeading();
-  new import_obsidian15.Setting(containerEl).setName(t("Left sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the left sidebar when expanded")).addText((text) => text.setValue(String(settings.leftSidebarMaxWidth)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Appearance")).setHeading();
+  new import_obsidian17.Setting(containerEl).setName(t("Left sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the left sidebar when expanded")).addText((text) => text.setValue(String(settings.leftSidebarMaxWidth)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.leftSidebarMaxWidth = num;
+      manager.autoHideFeature.updateCSSVariables();
       await plugin.saveSettings();
     }
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Right sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the right sidebar when expanded")).addText((text) => text.setValue(String(settings.rightSidebarMaxWidth)).onChange(async (v) => {
+  new import_obsidian17.Setting(containerEl).setName(t("Right sidebar maximum width")).setDesc(t("Specify the maximum width in pixels for the right sidebar when expanded")).addText((text) => text.setValue(String(settings.rightSidebarMaxWidth)).onChange(async (v) => {
     const num = parseInt(v);
     if (!isNaN(num) && num > 0) {
       settings.rightSidebarMaxWidth = num;
+      manager.autoHideFeature.updateCSSVariables();
       await plugin.saveSettings();
     }
   }));
@@ -3237,7 +4095,7 @@ function renderRibbonSettings(containerEl, manager) {
   const plugin = manager.plugin;
   const settings = plugin.settings.mySideBar.ribbon;
   manager.ribbonFeature.processRibbon().then(() => {
-    new import_obsidian15.Setting(containerEl).setName(t("Startup Display Delay")).setDesc(t("Delay in milliseconds before showing ribbon icons on startup. If 'My Plugins' is enabled, this acts as a buffer time added to the max plugin load delay.")).addText((text) => text.setPlaceholder("1000").setValue(String(settings.ribbonDisplayDelay)).onChange(async (value) => {
+    new import_obsidian17.Setting(containerEl).setName(t("Startup Display Delay")).setDesc(t("Delay in milliseconds before showing ribbon icons on startup. If 'My Plugins' is enabled, this acts as a buffer time added to the max plugin load delay.")).addText((text) => text.setPlaceholder("1000").setValue(String(settings.ribbonDisplayDelay)).onChange(async (value) => {
       const num = parseInt(value);
       if (!isNaN(num) && num >= 0) {
         settings.ribbonDisplayDelay = num;
@@ -3275,7 +4133,7 @@ function renderRibbonRow(container, el, manager, allElements) {
   nameContainer.style.gap = "8px";
   if (el.icon) {
     const iconSpan = nameContainer.createEl("span");
-    iconSpan.innerHTML = el.icon;
+    renderIconLike(iconSpan, el.icon);
     const svg = iconSpan.querySelector("svg");
     if (svg) {
       svg.setAttribute("width", "16");
@@ -3286,15 +4144,15 @@ function renderRibbonRow(container, el, manager, allElements) {
   nameContainer.createEl("span", { text: el.name || el.id });
   const visBtn = rowEntry.createEl("span", { cls: "statusbar-organizer-row-visibility" });
   visBtn.style.cursor = "pointer";
-  (0, import_obsidian15.setIcon)(visBtn, el.visible ? "eye" : "eye-off");
+  (0, import_obsidian17.setIcon)(visBtn, el.visible ? "eye" : "eye-off");
   visBtn.addEventListener("click", async () => {
     await manager.ribbonFeature.toggleVisibility(el.id);
     if (manager.plugin.settings.mySideBar.ribbon.elements[el.id].visible) {
       rowEntry.removeClass("statusbar-organizer-row-hidden");
-      (0, import_obsidian15.setIcon)(visBtn, "eye");
+      (0, import_obsidian17.setIcon)(visBtn, "eye");
     } else {
       rowEntry.addClass("statusbar-organizer-row-hidden");
-      (0, import_obsidian15.setIcon)(visBtn, "eye-off");
+      (0, import_obsidian17.setIcon)(visBtn, "eye-off");
     }
   });
 }
@@ -3339,11 +4197,11 @@ function handleRibbonDrag(e, row, el, manager, container, allElements) {
 function renderSidebarTabsSettings(containerEl, manager) {
   containerEl.empty();
   const settings = manager.plugin.settings.mySideBar.tabs;
-  new import_obsidian15.Setting(containerEl).setName(t("Scan Current Layout")).setDesc(t("Scan and apply")).addButton((btn) => btn.setButtonText(t("Scan")).onClick(async () => {
+  new import_obsidian17.Setting(containerEl).setName(t("Scan Current Layout")).setDesc(t("Scan and apply")).addButton((btn) => btn.setButtonText(t("Scan")).onClick(async () => {
     await manager.tabsFeature.scanAndApply();
     renderSidebarTabsSettings(containerEl, manager);
   }));
-  new import_obsidian15.Setting(containerEl).setName(t("Add New Group")).setDesc(t("Create a new contextual group binding")).addButton((btn) => btn.setButtonText(t("Add Group")).onClick(() => {
+  new import_obsidian17.Setting(containerEl).setName(t("Add New Group")).setDesc(t("Create a new contextual group binding")).addButton((btn) => btn.setButtonText(t("Add Group")).onClick(() => {
     new GroupModal(manager.app, manager, () => renderSidebarTabsSettings(containerEl, manager)).open();
   }));
   const elements = Object.values(settings.elements).sort((a, b) => a.order - b.order);
@@ -3365,7 +4223,9 @@ function renderTabGroup(container, title, groupElements, manager) {
   });
   heading.style.color = "var(--text-success)";
   if (groupElements.length === 0) {
-    container.createEl("div", { text: t("No elements"), cls: "setting-item-description", style: "margin-bottom: 20px; font-style: italic;" });
+    const emptyEl = container.createEl("div", { text: t("No elements"), cls: "setting-item-description" });
+    emptyEl.style.marginBottom = "20px";
+    emptyEl.style.fontStyle = "italic";
     return;
   }
   const listContainer = container.createDiv();
@@ -3398,20 +4258,11 @@ function renderTabRow(container, el, manager) {
     iconSpan.style.color = "var(--text-muted)";
     iconSpan.style.flexShrink = "0";
     iconSpan.style.alignSelf = "center";
-    if (iconToUse.startsWith("<svg") || iconToUse.includes("xmlns")) {
-      iconSpan.innerHTML = iconToUse;
-      const svg = iconSpan.querySelector("svg");
-      if (svg) {
-        svg.setAttribute("width", "16");
-        svg.setAttribute("height", "16");
-      }
-    } else {
-      (0, import_obsidian15.setIcon)(iconSpan, iconToUse);
-      const svg = iconSpan.querySelector("svg");
-      if (svg) {
-        svg.setAttribute("width", "16");
-        svg.setAttribute("height", "16");
-      }
+    renderIconLike(iconSpan, iconToUse);
+    const svg = iconSpan.querySelector("svg");
+    if (svg) {
+      svg.setAttribute("width", "16");
+      svg.setAttribute("height", "16");
     }
   }
   const info = row.createEl("div", { cls: "setting-item-info" });
@@ -3424,7 +4275,7 @@ function renderTabRow(container, el, manager) {
   info.createEl("div", { cls: "setting-item-name", text: displayName });
   const control = row.createEl("div", { cls: "setting-item-control" });
   if (binding) {
-    new import_obsidian15.ButtonComponent(control).setButtonText(t("Unbind")).setWarning().onClick(async () => {
+    new import_obsidian17.ButtonComponent(control).setButtonText(t("Unbind")).setWarning().onClick(async () => {
       const index = bindings.indexOf(binding);
       if (index > -1) {
         const master = settings.elements[binding.masterId];
@@ -3446,7 +4297,7 @@ function renderTabRow(container, el, manager) {
       }
     });
   } else {
-    new import_obsidian15.DropdownComponent(control).addOption("left", t("Left Sidebar")).addOption("right", t("Right Sidebar")).addOption("hidden", t("Hidden")).setValue(el.visible ? el.side : "hidden").onChange(async (value) => {
+    new import_obsidian17.DropdownComponent(control).addOption("left", t("Left Sidebar")).addOption("right", t("Right Sidebar")).addOption("hidden", t("Hidden")).setValue(el.visible ? el.side : "hidden").onChange(async (value) => {
       if (value === "hidden") {
         await manager.tabsFeature.updateTab(el.id, { visible: false });
       } else {
@@ -3513,7 +4364,7 @@ function handleTabDrag(e, row, el, manager, container) {
 }
 
 // src/main.ts
-var AssistantPlugin = class extends import_obsidian16.Plugin {
+var AssistantPlugin = class extends import_obsidian18.Plugin {
   async onload() {
     console.log(t("Loading Obsidian Assistant..."));
     console.log(t("Loading Settings..."));
@@ -3572,66 +4423,14 @@ var AssistantPlugin = class extends import_obsidian16.Plugin {
   }
   async loadSettings() {
     const loadedData = await this.loadData();
-    if (loadedData) {
-      this.migrateSettings(loadedData);
-    }
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-    if (loadedData == null ? void 0 : loadedData.myFolders) {
-      this.settings.myFolders = Object.assign({}, DEFAULT_SETTINGS.myFolders, loadedData.myFolders);
-    }
-    if (loadedData == null ? void 0 : loadedData.myPlugins) {
-      this.settings.myPlugins = Object.assign({}, DEFAULT_SETTINGS.myPlugins, loadedData.myPlugins);
-      if (loadedData.myPlugins.desktop) {
-        this.settings.myPlugins.desktop = Object.assign({}, DEFAULT_SETTINGS.myPlugins.desktop, loadedData.myPlugins.desktop);
-      }
-      if (loadedData.myPlugins.mobile) {
-        this.settings.myPlugins.mobile = Object.assign({}, DEFAULT_SETTINGS.myPlugins.mobile, loadedData.myPlugins.mobile);
-      }
-    }
-    if (loadedData == null ? void 0 : loadedData.mySnippets) {
-      this.settings.mySnippets = Object.assign({}, DEFAULT_SETTINGS.mySnippets, loadedData.mySnippets);
-    }
-    if (loadedData == null ? void 0 : loadedData.mySideBar) {
-      this.settings.mySideBar = Object.assign({}, DEFAULT_SETTINGS.mySideBar, loadedData.mySideBar);
-      if (loadedData.mySideBar.autoHide) {
-        this.settings.mySideBar.autoHide = Object.assign({}, DEFAULT_SETTINGS.mySideBar.autoHide, loadedData.mySideBar.autoHide);
-      }
-      if (loadedData.mySideBar.ribbon) {
-        this.settings.mySideBar.ribbon = Object.assign({}, DEFAULT_SETTINGS.mySideBar.ribbon, loadedData.mySideBar.ribbon);
-      }
-      if (loadedData.mySideBar.tabs) {
-        this.settings.mySideBar.tabs = Object.assign({}, DEFAULT_SETTINGS.mySideBar.tabs, loadedData.mySideBar.tabs);
-        if (this.settings.mySideBar.tabs.bindings) {
-          this.settings.mySideBar.tabs.bindings.forEach((b) => {
-            if (b.splitRatio !== void 0) {
-              b.splitRatio = Math.round(b.splitRatio);
-              if (b.splitRatio < 10)
-                b.splitRatio = 10;
-              if (b.splitRatio > 90)
-                b.splitRatio = 90;
-            }
-          });
-        }
-      }
-    }
+    this.settings = normalizeSettings(loadedData);
     await this.saveSettings();
   }
   async saveSettings() {
     await this.saveData(this.settings);
   }
-  migrateSettings(data) {
-    if (data.myStatusBar) {
-      delete data.myStatusBar.presets;
-      delete data.myStatusBar.activePreset;
-      delete data.myStatusBar.activeFullscreenPreset;
-      delete data.myStatusBar.separateFullscreenPreset;
-      delete data.myStatusBar.presetsOrder;
-    }
-    delete data.statusBar;
-    delete data.statusBarOrganizer;
-  }
 };
-var AssistantSettingsTab = class extends import_obsidian16.PluginSettingTab {
+var AssistantSettingsTab = class extends import_obsidian18.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -3748,7 +4547,7 @@ var AssistantSettingsTab = class extends import_obsidian16.PluginSettingTab {
     titleContainer.createEl("strong", { text: title });
     const toggleContainer = summary.createEl("div");
     toggleContainer.onclick = (e) => e.preventDefault();
-    const toggleSetting = new import_obsidian16.Setting(toggleContainer).addToggle((toggle) => toggle.setValue(isEnabled).onChange(onToggle));
+    const toggleSetting = new import_obsidian18.Setting(toggleContainer).addToggle((toggle) => toggle.setValue(isEnabled).onChange(onToggle));
     toggleSetting.settingEl.style.border = "none";
     toggleSetting.settingEl.style.padding = "0";
     toggleSetting.infoEl.remove();

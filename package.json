@@ -1,11 +1,13 @@
 {
     "name": "obsidian-assistant",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "An all-in-one assistant plugin integrating CSS snippets, folder management, lazy loading, status bar customization, and automatic numbering.",
     "main": "main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs",
-        "build": "node esbuild.config.mjs production"
+        "build": "node esbuild.config.mjs production",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "keywords": [
         "obsidian",
@@ -22,8 +24,10 @@
         "@types/react-dom": "^18.0.0",
         "builtin-modules": "^3.3.0",
         "esbuild": "0.17.3",
+        "jsdom": "^22.1.0",
         "obsidian": "^1.5.0",
         "tslib": "2.4.0",
-        "typescript": "4.7.4"
+        "typescript": "4.7.4",
+        "vitest": "^0.34.6"
     }
 }

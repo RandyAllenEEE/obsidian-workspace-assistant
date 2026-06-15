@@ -6,6 +6,7 @@ export default class Spooler {
     spooler: number;
     observer: MutationObserver;
     callback: (plugin: StatusBarManager) => void;
+    private disposed = false;
 
     constructor(plugin: StatusBarManager, callback: (plugin: StatusBarManager) => void) {
         // Technically the mutex part is not necessary, since JavaScript
@@ -41,7 +42,14 @@ export default class Spooler {
      * Enable automatic spooling.
      */
     enableObserver() {
+        if (this.disposed || !this.plugin.statusBar) return;
         this.observer.observe(this.plugin.statusBar!, { childList: true });
+    }
+
+    dispose() {
+        this.disposed = true;
+        window.clearTimeout(this.spooler);
+        this.disableObserver();
     }
 
     /**
@@ -50,20 +58,26 @@ export default class Spooler {
      * @param timeout 
      */
     spoolFix(timeout: number = 1000) {
+        if (this.disposed) return;
         clearTimeout(this.spooler);
 
         this.spooler =
             window.setTimeout(() => {
+                if (this.disposed) return;
                 if (this.mutex) {
                     this.spoolFix();
                 } else {
                     this.mutex = true;
                     this.disableObserver();
 
-                    this.callback(this.plugin);
-
-                    this.enableObserver();
-                    this.mutex = false;
+                    try {
+                        this.callback(this.plugin);
+                    } catch (e) {
+                        console.error("Assistant: status bar reorder failed", e);
+                    } finally {
+                        this.mutex = false;
+                        if (!this.disposed) this.enableObserver();
+                    }
                 }
             }, timeout);
     }

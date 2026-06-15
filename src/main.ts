@@ -1,5 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { AssistantSettings, DEFAULT_SETTINGS } from './settings';
+import { AssistantSettings, normalizeSettings } from './settings';
 import { FoldersManager } from './folders/manager';
 import { renderFoldersSettings } from './folders/settings-ui';
 import { StatusBarManager } from './statusbar/manager';
@@ -85,60 +85,7 @@ export default class AssistantPlugin extends Plugin {
 
     async loadSettings() {
         const loadedData = await this.loadData();
-
-        if (loadedData) {
-            this.migrateSettings(loadedData);
-        }
-
-        // 1. Initial Assign for top-level keys
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-
-        // Folders
-        if (loadedData?.myFolders) {
-            this.settings.myFolders = Object.assign({}, DEFAULT_SETTINGS.myFolders, loadedData.myFolders);
-        }
-
-        // Plugins
-        if (loadedData?.myPlugins) {
-            this.settings.myPlugins = Object.assign({}, DEFAULT_SETTINGS.myPlugins, loadedData.myPlugins);
-            if (loadedData.myPlugins.desktop) {
-                this.settings.myPlugins.desktop = Object.assign({}, DEFAULT_SETTINGS.myPlugins.desktop, loadedData.myPlugins.desktop);
-            }
-            if (loadedData.myPlugins.mobile) {
-                this.settings.myPlugins.mobile = Object.assign({}, DEFAULT_SETTINGS.myPlugins.mobile, loadedData.myPlugins.mobile);
-            }
-        }
-
-        // Snippets
-        if (loadedData?.mySnippets) {
-            this.settings.mySnippets = Object.assign({}, DEFAULT_SETTINGS.mySnippets, loadedData.mySnippets);
-        }
-
-        // SideBar
-        if (loadedData?.mySideBar) {
-            this.settings.mySideBar = Object.assign({}, DEFAULT_SETTINGS.mySideBar, loadedData.mySideBar);
-
-            if (loadedData.mySideBar.autoHide) {
-                this.settings.mySideBar.autoHide = Object.assign({}, DEFAULT_SETTINGS.mySideBar.autoHide, loadedData.mySideBar.autoHide);
-            }
-            if (loadedData.mySideBar.ribbon) {
-                this.settings.mySideBar.ribbon = Object.assign({}, DEFAULT_SETTINGS.mySideBar.ribbon, loadedData.mySideBar.ribbon);
-            }
-            if (loadedData.mySideBar.tabs) {
-                this.settings.mySideBar.tabs = Object.assign({}, DEFAULT_SETTINGS.mySideBar.tabs, loadedData.mySideBar.tabs);
-
-                // Cleanup splitRatio bounds (Issue #6)
-                if (this.settings.mySideBar.tabs.bindings) {
-                    this.settings.mySideBar.tabs.bindings.forEach(b => {
-                        if (b.splitRatio !== undefined) {
-                            b.splitRatio = Math.round(b.splitRatio);
-                            if (b.splitRatio < 10) b.splitRatio = 10;
-                            if (b.splitRatio > 90) b.splitRatio = 90;
-                        }
-                    });
-                }
-            }
-        }
+        this.settings = normalizeSettings(loadedData);
 
         // Save cleaned settings to disk immediately
         await this.saveSettings();
@@ -148,19 +95,6 @@ export default class AssistantPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    private migrateSettings(data: any) {
-        // Migration for version < 2.0.0
-        // Clean up 2.0.0 obsoleted keys
-        if (data.myStatusBar) {
-            delete data.myStatusBar.presets;
-            delete data.myStatusBar.activePreset;
-            delete data.myStatusBar.activeFullscreenPreset;
-            delete data.myStatusBar.separateFullscreenPreset;
-            delete data.myStatusBar.presetsOrder;
-        }
-        delete data.statusBar;
-        delete data.statusBarOrganizer;
-    }
 }
 
 class AssistantSettingsTab extends PluginSettingTab {

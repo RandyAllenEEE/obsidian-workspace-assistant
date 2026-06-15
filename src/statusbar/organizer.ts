@@ -18,6 +18,7 @@ export function fixOrder(plugin: StatusBarManager) {
 
     // Split elements into known and unknown
     for (const element of elements) {
+        plugin.rememberElementState(element.element as HTMLElement);
         if (element.id in status) {
             const myStatus = status[element.id];
             known.push([element, myStatus.position]);
