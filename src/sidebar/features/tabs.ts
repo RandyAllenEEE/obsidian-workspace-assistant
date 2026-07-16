@@ -43,6 +43,7 @@ type WorkspaceParentWithChildren = {
 export class SidebarTabsFeature {
     app: App;
     plugin: AssistantPlugin;
+    private onLayoutApplied?: () => void | Promise<void>;
 
     scanTimer: number | null = null;
     private isLoaded = false;
@@ -52,9 +53,10 @@ export class SidebarTabsFeature {
     private appliedRefreshId = 0;
     private loadGeneration = 0;
 
-    constructor(app: App, plugin: AssistantPlugin) {
+    constructor(app: App, plugin: AssistantPlugin, onLayoutApplied?: () => void | Promise<void>) {
         this.app = app;
         this.plugin = plugin;
+        this.onLayoutApplied = onLayoutApplied;
     }
 
     async onload() {
@@ -226,6 +228,7 @@ export class SidebarTabsFeature {
 
         if (isLeftMatch && isRightMatch) {
             // Layout is already perfect. Do not disturb.
+            await this.onLayoutApplied?.();
             return;
         }
 
@@ -261,6 +264,8 @@ export class SidebarTabsFeature {
         if (!isLeftMatch) await this.openInSplit(leftItems, 'left', viewStates);
         if (!this.isLoaded || !settings.enabled) return;
         if (!isRightMatch) await this.openInSplit(rightItems, 'right', viewStates);
+        if (!this.isLoaded || !settings.enabled) return;
+        await this.onLayoutApplied?.();
     }
 
     async openInSplit(items: SidebarTabElement[], side: 'left' | 'right', viewStates: { [id: string]: any }) {

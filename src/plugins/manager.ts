@@ -23,6 +23,7 @@ export class PluginsManager {
     private isLoaded = false;
     private startupOperationCounter = 0;
     private startupOperations = new Map<string, number>();
+    private startupQueue: Promise<void> = Promise.resolve();
 
     constructor(app: App, plugin: AssistantPlugin) {
         this.app = app;
@@ -44,14 +45,24 @@ export class PluginsManager {
         if (this.isLoaded || !this.settings.enabled) return;
         this.isLoaded = true;
         this.scope.reset();
+        const runToken = this.scope.token();
 
         await this.refreshDeviceConfiguration();
-        if (!this.isLoaded) return;
+        if (!this.isActiveRun(runToken)) return;
 
-        // Iterate over the installed plugins and load them with the specified delay
-        this.manifests.forEach(plugin => {
-            void this.setPluginStartup(plugin.id);
-        });
+        const startInitialPluginSetup = () => {
+            if (!this.isActiveRun(runToken)) return;
+            void this.startInitialPluginSetup(runToken);
+        };
+
+        // Enabling or disabling a plugin can rebuild Markdown views. Do not let
+        // that race Obsidian's restoration of their ephemeral editor state.
+        const workspace = this.app.workspace;
+        if (workspace && workspace.layoutReady === false) {
+            workspace.onLayoutReady(startInitialPluginSetup);
+        } else {
+            startInitialPluginSetup();
+        }
     }
 
     async refreshDeviceConfiguration() {
@@ -90,48 +101,85 @@ export class PluginsManager {
         const runToken = this.scope.token();
         const operationToken = ++this.startupOperationCounter;
         this.startupOperations.set(pluginId, operationToken);
-        const obsidian = this.getObsidianPlugins();
-
-        const startupType = this.getPluginStartup(pluginId);
-        const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
-        const isRunning = obsidian.plugins?.[pluginId]?._loaded;
 
         try {
-            switch (startupType) {
-                case LoadingMethod.disabled:
-                    if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                    await obsidian.disablePluginAndSave(pluginId);
-                    if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                    break;
-                case LoadingMethod.instant:
-                    if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                    if (!isActiveOnStartup && !isRunning) {
-                        await obsidian.enablePluginAndSave(pluginId);
-                        if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                        this.requestSoftStartupRefresh();
-                    }
-                    break;
-                case LoadingMethod.short:
-                case LoadingMethod.long:
-                    if (isActiveOnStartup) {
-                        if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                        await obsidian.disablePluginAndSave(pluginId);
-                        if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                        await obsidian.enablePlugin(pluginId);
-                        if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                        this.requestSoftStartupRefresh();
-                    } else if (!isRunning) {
-                        if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                        this.scheduleDelayedStartup(pluginId, startupType, obsidian, runToken, operationToken);
-                    }
-                    break;
-            }
+            await this.enqueueStartupOperation(async () => {
+                if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
+
+                // Read runtime state only after this operation reaches the head
+                // of the queue; an earlier operation may have changed it.
+                const obsidian = this.getObsidianPlugins();
+                const startupType = this.getPluginStartup(pluginId);
+                const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
+                const isRunning = Boolean(obsidian.plugins?.[pluginId]?._loaded);
+
+                switch (startupType) {
+                    case LoadingMethod.disabled:
+                        if (isActiveOnStartup || isRunning) {
+                            await this.runPluginLifecycleMutation(() => obsidian.disablePluginAndSave(pluginId));
+                            if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
+                        }
+                        break;
+                    case LoadingMethod.instant:
+                        if (!isActiveOnStartup) {
+                            await this.runPluginLifecycleMutation(() => obsidian.enablePluginAndSave(pluginId));
+                            if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
+                            this.requestSoftStartupRefresh();
+                        } else if (!isRunning) {
+                            await this.runPluginLifecycleMutation(() => obsidian.enablePlugin(pluginId));
+                            if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
+                            this.requestSoftStartupRefresh();
+                        }
+                        break;
+                    case LoadingMethod.short:
+                    case LoadingMethod.long:
+                        if (isActiveOnStartup) {
+                            await this.runPluginLifecycleMutation(() => obsidian.disablePluginAndSave(pluginId));
+                            if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
+                            this.scheduleDelayedStartup(pluginId, startupType, runToken, operationToken);
+                        } else if (!isRunning) {
+                            this.scheduleDelayedStartup(pluginId, startupType, runToken, operationToken);
+                        }
+                        break;
+                }
+            });
         } catch (e) {
-            console.error(t('Failed to load plugin {id} after delay:').replace('{id}', pluginId), e);
+            if (this.isActiveRun(runToken, pluginId, operationToken)) {
+                console.error(t('Failed to load plugin {id} after delay:').replace('{id}', pluginId), e);
+            }
         }
     }
 
-    private scheduleDelayedStartup(pluginId: string, startupType: LoadingMethod, obsidian: ObsidianPluginManager, runToken: number, operationToken: number) {
+    private async startInitialPluginSetup(runToken: number) {
+        for (const manifest of this.manifests) {
+            if (!this.isActiveRun(runToken)) return;
+            await this.setPluginStartup(manifest.id);
+        }
+    }
+
+    private enqueueStartupOperation(operation: () => Promise<void>) {
+        const queued = this.startupQueue.then(operation);
+        // Keep the queue usable after one plugin fails, while returning the
+        // original rejection to the operation that owns the error message.
+        this.startupQueue = queued.catch(() => undefined);
+        return queued;
+    }
+
+    private async runPluginLifecycleMutation(operation: () => Promise<void>) {
+        const configuredGap = this.deviceSettings.delayBetweenPlugins;
+        const stabilizationDelay = Number.isFinite(configuredGap) ? Math.max(0, configuredGap) : 40;
+
+        try {
+            await operation();
+        } finally {
+            // Plugin lifecycle promises can resolve before their workspace and
+            // editor callbacks have drained. Keep the global queue occupied for
+            // at least one macrotask (and the configured inter-plugin gap).
+            await new Promise<void>(resolve => window.setTimeout(resolve, stabilizationDelay));
+        }
+    }
+
+    private scheduleDelayedStartup(pluginId: string, startupType: LoadingMethod, runToken: number, operationToken: number) {
         const seconds = startupType === LoadingMethod.short ? this.deviceSettings.shortDelaySeconds : this.deviceSettings.longDelaySeconds;
         const stagger = isNaN(this.deviceSettings.delayBetweenPlugins) ? 40 : this.deviceSettings.delayBetweenPlugins;
         const manifestIndex = this.manifests.findIndex(x => x.id === pluginId);
@@ -142,22 +190,32 @@ export class PluginsManager {
                 this.pendingTimeouts.delete(pluginId);
             }
             if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-            try {
-                if (!obsidian.plugins?.[pluginId]?._loaded) {
-                    if (this.settings.showConsoleLog) {
-                        console.log(t('Starting {id} after a {type} delay').replace('{id}', pluginId).replace('{type}', startupType));
-                    }
-                    await obsidian.enablePlugin(pluginId);
-                    if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-                    this.requestSoftStartupRefresh();
-                }
-            } catch (e) {
-                console.error(t('Failed to load plugin {id} after delay:').replace('{id}', pluginId), e);
-            }
+            void this.runDelayedStartup(pluginId, startupType, runToken, operationToken);
         }, seconds * 1000 + delay);
 
         this.pendingTimeouts.set(pluginId, timeout);
         this.scope.add(() => window.clearTimeout(timeout));
+    }
+
+    private async runDelayedStartup(pluginId: string, startupType: LoadingMethod, runToken: number, operationToken: number) {
+        try {
+            await this.enqueueStartupOperation(async () => {
+                if (!this.isActiveRun(runToken, pluginId, operationToken) || this.getPluginStartup(pluginId) !== startupType) return;
+
+                const obsidian = this.getObsidianPlugins();
+                if (obsidian.plugins?.[pluginId]?._loaded) return;
+                if (this.settings.showConsoleLog) {
+                    console.log(t('Starting {id} after a {type} delay').replace('{id}', pluginId).replace('{type}', startupType));
+                }
+                await this.runPluginLifecycleMutation(() => obsidian.enablePlugin(pluginId));
+                if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
+                this.requestSoftStartupRefresh();
+            });
+        } catch (e) {
+            if (this.isActiveRun(runToken, pluginId, operationToken)) {
+                console.error(t('Failed to load plugin {id} after delay:').replace('{id}', pluginId), e);
+            }
+        }
     }
 
     private clearPendingStartup(pluginId: string) {

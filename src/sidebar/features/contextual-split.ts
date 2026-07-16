@@ -7,6 +7,8 @@ type WorkspaceParentWithChildren = {
     children?: unknown[];
 };
 
+type SidebarSide = 'left' | 'right';
+
 export class ContextualSplitFeature {
     app: App;
     plugin: AssistantPlugin;
@@ -15,7 +17,11 @@ export class ContextualSplitFeature {
     // Key format: "left-viewType" or "right-viewType" to support same viewType on both sidebars
     private originalStates: Map<string, { icon: string, title: string }> = new Map();
     // Support independent active splits for left and right sidebars
-    private activeBindings: Map<'left' | 'right', SidebarBinding> = new Map();
+    private activeBindings: Map<SidebarSide, SidebarBinding> = new Map();
+    private sideOperationQueues: Map<SidebarSide, Promise<void>> = new Map();
+    private reconciliationQueued: Set<SidebarSide> = new Set();
+    private pendingSlaveLeaves: Map<SidebarSide, WorkspaceLeaf> = new Map();
+    private preferredMasterLeaves: Map<SidebarSide, { binding: SidebarBinding, leaf: WorkspaceLeaf }> = new Map();
     private listeners: EventRef[] = [];
     private observer: MutationObserver | null = null;
     private isLoaded = false;
@@ -53,6 +59,7 @@ export class ContextualSplitFeature {
             }
 
             this.applyAllMasquerades();
+            void this.checkActiveBindingValidity();
         };
 
         if (this.app.workspace.layoutReady) {
@@ -68,7 +75,7 @@ export class ContextualSplitFeature {
             this.app.workspace.on('layout-change', debounce(() => {
                 if (!this.isLoaded) return;
                 this.applyAllMasquerades();
-                this.checkActiveBindingValidity();
+                void this.checkActiveBindingValidity();
             }, 200))
         );
 
@@ -81,7 +88,7 @@ export class ContextualSplitFeature {
 
         this.listeners.push(
             this.app.workspace.on('active-leaf-change', debounce((leaf) => {
-                if (this.isLoaded && leaf) this.handleActiveLeaf(leaf);
+                if (this.isLoaded && leaf) void this.handleActiveLeaf(leaf);
             }, 50, true))
         );
     }
@@ -89,6 +96,9 @@ export class ContextualSplitFeature {
     onunload() {
         this.isLoaded = false;
         this.loadGeneration++;
+        this.reconciliationQueued.clear();
+        this.sideOperationQueues.clear();
+        this.preferredMasterLeaves.clear();
         this.listeners.forEach(ref => this.app.workspace.offref(ref));
         this.listeners = [];
 
@@ -97,11 +107,18 @@ export class ContextualSplitFeature {
             this.observer = null;
         }
 
+        this.pendingSlaveLeaves.forEach(leaf => {
+            this.removeHiddenHeader(leaf);
+            leaf.detach();
+        });
+        this.pendingSlaveLeaves.clear();
+
         // Cleanup all active splits
         this.activeBindings.forEach((binding, side) => {
             this.cleanupSplit(binding, side);
         });
         this.activeBindings.clear();
+        this.cleanOrphans();
         // Restore all visuals
         const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
         bindings.forEach(b => {
@@ -151,7 +168,7 @@ export class ContextualSplitFeature {
     /**
      * Determine which sidebar a leaf belongs to using DOM traversal
      */
-    private getLeafSide(leaf: WorkspaceLeaf): 'left' | 'right' | 'unknown' {
+    private getLeafSide(leaf: WorkspaceLeaf): SidebarSide | 'unknown' {
         const container = leaf.view?.containerEl;
         if (!container) return 'unknown';
 
@@ -163,76 +180,160 @@ export class ContextualSplitFeature {
 
     async handleActiveLeaf(leaf: WorkspaceLeaf) {
         if (!this.plugin.settings.mySideBar.tabs?.enabled) return;
-        const viewType = leaf.view.getViewType();
-        const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
-
-        const matchingBinding = bindings.find(b => b.masterId === viewType);
-
-        // Determine side
         const side = this.getLeafSide(leaf);
         if (side === 'unknown') return;
 
-        const currentActive = this.activeBindings.get(side);
+        const viewType = leaf.view.getViewType();
+        const binding = (this.plugin.settings.mySideBar.tabs.bindings || [])
+            .find(candidate => candidate.masterId === viewType);
+        if (binding) {
+            this.preferredMasterLeaves.set(side, { binding, leaf });
+        } else if (
+            leaf.view.containerEl.dataset.assistantContextualSlave !== "true" &&
+            this.pendingSlaveLeaves.get(side) !== leaf
+        ) {
+            this.preferredMasterLeaves.delete(side);
+        }
 
-        if (matchingBinding) {
-            // Activate Split (Focused on Master)
-            if (currentActive && currentActive !== matchingBinding) {
-                await this.cleanupSplit(currentActive, side);
+        await this.requestSideReconciliation(side);
+    }
+
+    async checkActiveBindingValidity() {
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs?.enabled) return;
+        await Promise.all([
+            this.requestSideReconciliation('left'),
+            this.requestSideReconciliation('right')
+        ]);
+    }
+
+    private requestSideReconciliation(side: SidebarSide): Promise<void> {
+        if (!this.isLoaded || !this.plugin.settings.mySideBar.tabs?.enabled) {
+            return Promise.resolve();
+        }
+
+        if (this.reconciliationQueued.has(side)) {
+            return this.sideOperationQueues.get(side) || Promise.resolve();
+        }
+
+        this.reconciliationQueued.add(side);
+        return this.enqueueSideOperation(side, async generation => {
+            this.reconciliationQueued.delete(side);
+            await this.reconcileSide(side, generation);
+        });
+    }
+
+    private enqueueSideOperation(
+        side: SidebarSide,
+        operation: (generation: number) => Promise<void>
+    ): Promise<void> {
+        const generation = this.loadGeneration;
+        const previous = this.sideOperationQueues.get(side) || Promise.resolve();
+        const run = previous
+            .catch(e => console.error(`Assistant: Contextual split ${side} operation failed`, e))
+            .then(async () => {
+                if (!this.isLoaded || generation !== this.loadGeneration) return;
+                await operation(generation);
+            })
+            .catch(e => console.error(`Assistant: Contextual split ${side} operation failed`, e));
+
+        this.sideOperationQueues.set(side, run);
+        const clearQueue = () => {
+            if (this.sideOperationQueues.get(side) === run) {
+                this.sideOperationQueues.delete(side);
             }
-            this.activeBindings.set(side, matchingBinding);
-            await this.activateSplit(leaf, matchingBinding);
+        };
+        void run.then(clearQueue, clearQueue);
+        return run;
+    }
 
-        } else {
-            // Focused on something else on this side
-            if (currentActive) {
-                // 1. Is it the Slave?
-                if (viewType === currentActive.slaveId) {
-                    if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
-                        return; // Focus is on our slave, keep split open
-                    }
+    private async reconcileSide(side: SidebarSide, generation: number) {
+        if (!this.isLoaded || generation !== this.loadGeneration) return;
+
+        const desired = this.findVisibleBinding(side);
+        const current = this.activeBindings.get(side);
+
+        if (!desired) {
+            if (current) {
+                await this.cleanupSplit(current, side);
+                if (this.bindingsMatch(this.activeBindings.get(side), current)) {
+                    this.activeBindings.delete(side);
                 }
+            }
+            this.cleanupOrphanSlavesOnSide(side);
+            return;
+        }
 
-                // 2. Is the Master still visible? (e.g. Focus is in Editor, but Sidebar Tab is open)
-                if (this.isMasterVisible(currentActive.masterId, side)) {
-                    return; // Master is visible, keep split open
-                }
-
-                await this.cleanupSplit(currentActive, side);
+        if (current && !this.bindingsMatch(current, desired.binding)) {
+            await this.cleanupSplit(current, side);
+            if (this.bindingsMatch(this.activeBindings.get(side), current)) {
                 this.activeBindings.delete(side);
             }
         }
+
+        if (!this.isLoaded || generation !== this.loadGeneration) return;
+
+        const slaveLeaves = this.findSlaveLeaves(desired.binding.slaveId, side);
+        const slaveLeaf = slaveLeaves.shift() || null;
+        slaveLeaves.forEach(duplicate => {
+            this.removeHiddenHeader(duplicate);
+            duplicate.detach();
+        });
+        if (slaveLeaf) {
+            const parentEl = (slaveLeaf as any).parent?.containerEl as HTMLElement | undefined;
+            const bindingWasInactive = !this.bindingsMatch(current, desired.binding);
+            if (bindingWasInactive || !parentEl?.hasClass('contextual-split-hidden-header')) {
+                this.applySplitPresentation(slaveLeaf, desired.binding, desired.masterLeaf);
+            }
+            this.activeBindings.set(side, desired.binding);
+            return;
+        }
+
+        if (this.bindingsMatch(this.activeBindings.get(side), desired.binding)) {
+            this.activeBindings.delete(side);
+        }
+        await this.activateSplitNow(desired.masterLeaf, desired.binding, side, generation);
     }
 
-    checkActiveBindingValidity() {
+    private findVisibleBinding(side: SidebarSide): { binding: SidebarBinding, masterLeaf: WorkspaceLeaf } | null {
         const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
-        const sides: ('left' | 'right')[] = ['left', 'right'];
 
-        sides.forEach(side => {
-            const currentActive = this.activeBindings.get(side);
+        const preferred = this.preferredMasterLeaves.get(side);
+        if (preferred) {
+            const binding = bindings.find(candidate => this.bindingsMatch(candidate, preferred.binding));
+            const isVisible = binding &&
+                preferred.leaf.view.getViewType() === binding.masterId &&
+                this.getLeafSide(preferred.leaf) === side &&
+                preferred.leaf.view.containerEl.isShown();
+            if (binding && isVisible) return { binding, masterLeaf: preferred.leaf };
+            this.preferredMasterLeaves.delete(side);
+        }
 
-            // 1. Check if any Master is visible on this side
-            for (const binding of bindings) {
-                if (this.isMasterVisible(binding.masterId, side)) {
-                    if (currentActive !== binding) {
-                        if (currentActive) this.cleanupSplit(currentActive, side);
-
-                        this.activeBindings.set(side, binding);
-                        const leaves = this.findLeavesByType(binding.masterId);
-                        // Filter for leaves on this side
-                        const sideLeaf = leaves.find(l => this.getLeafSide(l) === side && l.view.containerEl.isShown());
-
-                        if (sideLeaf) this.activateSplit(sideLeaf, binding);
-                    }
-                    return; // Found a valid master for this side, move to next side
-                }
+        const active = this.activeBindings.get(side);
+        if (active) {
+            const binding = bindings.find(candidate => this.bindingsMatch(candidate, active));
+            if (binding) {
+                const masterLeaf = this.findVisibleMasterLeaf(binding.masterId, side);
+                if (masterLeaf) return { binding, masterLeaf };
             }
+        }
 
-            // 2. If no Master is visible on this side, cleanup
-            if (currentActive) {
-                this.cleanupSplit(currentActive, side);
-                this.activeBindings.delete(side);
-            }
-        });
+        for (const binding of bindings) {
+            const masterLeaf = this.findVisibleMasterLeaf(binding.masterId, side);
+            if (masterLeaf) return { binding, masterLeaf };
+        }
+        return null;
+    }
+
+    private findVisibleMasterLeaf(masterId: string, side: SidebarSide): WorkspaceLeaf | undefined {
+        return this.findLeavesByType(masterId).find(leaf =>
+            this.getLeafSide(leaf) === side && leaf.view.containerEl.isShown()
+        );
+    }
+
+    private bindingsMatch(first: SidebarBinding | undefined, second: SidebarBinding | undefined): boolean {
+        return !!first && !!second &&
+            first.masterId === second.masterId &&
+            first.slaveId === second.slaveId;
     }
 
     isMasterVisible(masterId: string, side?: 'left' | 'right'): boolean {
@@ -272,35 +373,96 @@ export class ContextualSplitFeature {
     }
 
     async activateSplit(masterLeaf: WorkspaceLeaf, binding: SidebarBinding) {
-        // Only handles the split logic now, visual is handled globally
         const side = this.getLeafSide(masterLeaf);
         if (side === 'unknown') return;
+
+        await this.enqueueSideOperation(side, async generation => {
+            if (!this.isMasterVisible(binding.masterId, side)) return;
+            await this.activateSplitNow(masterLeaf, binding, side, generation);
+        });
+    }
+
+    private async activateSplitNow(
+        masterLeaf: WorkspaceLeaf,
+        binding: SidebarBinding,
+        side: SidebarSide,
+        generation: number
+    ) {
+        if (!this.isLoaded || generation !== this.loadGeneration) return;
 
         let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
 
         if (!slaveLeaf) {
-            slaveLeaf = this.app.workspace.createLeafBySplit(masterLeaf, 'horizontal');
+            try {
+                slaveLeaf = this.app.workspace.createLeafBySplit(masterLeaf, 'horizontal');
+            } catch (e) {
+                console.error("Assistant: Failed to create contextual split leaf", e);
+                return;
+            }
+            this.pendingSlaveLeaves.set(side, slaveLeaf);
+            slaveLeaf.view.containerEl.dataset.assistantContextualSlave = "true";
             try {
                 await slaveLeaf.setViewState({ type: binding.slaveId });
             } catch (e) {
                 console.error("Assistant: Failed to create contextual split slave", e);
-                slaveLeaf.detach();
+                const ownsPendingLeaf = this.pendingSlaveLeaves.get(side) === slaveLeaf;
+                if (ownsPendingLeaf) {
+                    this.pendingSlaveLeaves.delete(side);
+                    this.removeHiddenHeader(slaveLeaf);
+                    slaveLeaf.detach();
+                    if (
+                        generation === this.loadGeneration &&
+                        this.bindingsMatch(this.activeBindings.get(side), binding)
+                    ) {
+                        this.activeBindings.delete(side);
+                    }
+                }
                 return;
             }
-            if (!this.isLoaded) {
+
+            if (this.pendingSlaveLeaves.get(side) !== slaveLeaf) return;
+            this.pendingSlaveLeaves.delete(side);
+
+            const desired = this.findVisibleBinding(side);
+            const isCurrent = this.isLoaded &&
+                generation === this.loadGeneration &&
+                this.plugin.settings.mySideBar.tabs?.enabled &&
+                this.bindingsMatch(desired?.binding, binding) &&
+                desired?.masterLeaf === masterLeaf &&
+                this.getLeafSide(slaveLeaf) === side &&
+                slaveLeaf.view.getViewType() === binding.slaveId;
+
+            if (!isCurrent) {
+                this.removeHiddenHeader(slaveLeaf);
                 slaveLeaf.detach();
+                if (this.bindingsMatch(this.activeBindings.get(side), binding)) {
+                    this.activeBindings.delete(side);
+                }
                 return;
             }
             slaveLeaf.view.containerEl.dataset.assistantContextualSlave = "true";
+
+            if (!desired) return;
+            binding = desired.binding;
+            masterLeaf = desired.masterLeaf;
         }
 
+        this.applySplitPresentation(slaveLeaf, binding, masterLeaf);
+        this.activeBindings.set(side, binding);
+    }
+
+    private applySplitPresentation(
+        slaveLeaf: WorkspaceLeaf,
+        binding: SidebarBinding,
+        masterLeaf?: WorkspaceLeaf
+    ) {
         const parent = (slaveLeaf as any).parent;
         if (parent && parent.containerEl) {
             parent.containerEl.addClass('contextual-split-hidden-header');
 
             // Restore Dimension with Constraints and Balance Sibling
             if (typeof (parent as any).setDimension === 'function') {
-                let dim = binding.splitRatio || 50;
+                let dim = binding.splitRatio ?? 50;
                 dim = Math.round(dim);
                 if (dim < 10) dim = 10;
                 if (dim > 90) dim = 90;
@@ -308,8 +470,11 @@ export class ContextualSplitFeature {
                 const split = parent.parent; // WorkspaceSplit (Vertical)
                 if (split && split.children) {
                     const others = split.children.filter((c: any) => c !== parent);
-                    if (others.length > 0) {
-                        const sibling = others[0]; // Master Tabs
+                    const masterParent = masterLeaf && (masterLeaf as any).parent?.parent === split
+                        ? (masterLeaf as any).parent
+                        : null;
+                    const sibling = masterParent || others[0];
+                    if (sibling) {
 
                         try {
                             if (typeof (parent as any).setDimension === 'function') {
@@ -338,13 +503,31 @@ export class ContextualSplitFeature {
 
     async cleanupSplit(binding: SidebarBinding, side?: 'left' | 'right') {
         // Only closes the slave split
-        const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
-        if (slaveLeaf) {
+        this.findSlaveLeaves(binding.slaveId, side).forEach(slaveLeaf => {
             if (slaveLeaf.view.containerEl.dataset.assistantContextualSlave === "true") {
                 this.removeHiddenHeader(slaveLeaf);
                 slaveLeaf.detach();
             }
-        }
+        });
+    }
+
+    private cleanupOrphanSlavesOnSide(side: SidebarSide) {
+        const split = side === 'left'
+            ? this.app.workspace.leftSplit
+            : this.app.workspace.rightSplit;
+        if (!split) return;
+
+        const pending = this.pendingSlaveLeaves.get(side);
+        const orphanLeaves: WorkspaceLeaf[] = [];
+        this.iterateLeavesInSplit(split, leaf => {
+            if (leaf !== pending && leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
+                orphanLeaves.push(leaf);
+            }
+        });
+        orphanLeaves.forEach(leaf => {
+            this.removeHiddenHeader(leaf);
+            leaf.detach();
+        });
     }
 
     private removeHiddenHeader(leaf: WorkspaceLeaf) {
@@ -361,13 +544,17 @@ export class ContextualSplitFeature {
     }
 
     findUniqueSlaveLeaf(type: string, side?: 'left' | 'right'): WorkspaceLeaf | null {
-        let found: WorkspaceLeaf | null = null;
+        return this.findSlaveLeaves(type, side)[0] || null;
+    }
+
+    private findSlaveLeaves(type: string, side?: SidebarSide): WorkspaceLeaf[] {
+        const found: WorkspaceLeaf[] = [];
         const checkSplit = (split: any) => {
             if (!split) return;
             this.iterateLeavesInSplit(split, (l: WorkspaceLeaf) => {
                 if (side && this.getLeafSide(l) !== side) return;
                 if (l.view.getViewType() === type && l.view.containerEl.dataset.assistantContextualSlave === "true") {
-                    found = l;
+                    found.push(l);
                 }
             });
         };

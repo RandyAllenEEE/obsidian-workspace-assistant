@@ -1607,6 +1607,7 @@ var PluginsManager = class {
     this.isLoaded = false;
     this.startupOperationCounter = 0;
     this.startupOperations = /* @__PURE__ */ new Map();
+    this.startupQueue = Promise.resolve();
     this.app = app;
     this.plugin = plugin;
   }
@@ -1624,12 +1625,21 @@ var PluginsManager = class {
       return;
     this.isLoaded = true;
     this.scope.reset();
+    const runToken = this.scope.token();
     await this.refreshDeviceConfiguration();
-    if (!this.isLoaded)
+    if (!this.isActiveRun(runToken))
       return;
-    this.manifests.forEach((plugin) => {
-      void this.setPluginStartup(plugin.id);
-    });
+    const startInitialPluginSetup = () => {
+      if (!this.isActiveRun(runToken))
+        return;
+      void this.startInitialPluginSetup(runToken);
+    };
+    const workspace = this.app.workspace;
+    if (workspace && workspace.layoutReady === false) {
+      workspace.onLayoutReady(startInitialPluginSetup);
+    } else {
+      startInitialPluginSetup();
+    }
   }
   async refreshDeviceConfiguration() {
     let changed = false;
@@ -1658,87 +1668,120 @@ var PluginsManager = class {
     this.startupOperations.clear();
   }
   async setPluginStartup(pluginId) {
-    var _a, _b;
     if (!this.isLoaded || !this.settings.enabled)
       return;
     this.clearPendingStartup(pluginId);
     const runToken = this.scope.token();
     const operationToken = ++this.startupOperationCounter;
     this.startupOperations.set(pluginId, operationToken);
-    const obsidian = this.getObsidianPlugins();
-    const startupType = this.getPluginStartup(pluginId);
-    const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
-    const isRunning = (_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded;
     try {
-      switch (startupType) {
-        case "disabled" /* disabled */:
-          if (!this.isActiveRun(runToken, pluginId, operationToken))
-            return;
-          await obsidian.disablePluginAndSave(pluginId);
-          if (!this.isActiveRun(runToken, pluginId, operationToken))
-            return;
-          break;
-        case "instant" /* instant */:
-          if (!this.isActiveRun(runToken, pluginId, operationToken))
-            return;
-          if (!isActiveOnStartup && !isRunning) {
-            await obsidian.enablePluginAndSave(pluginId);
-            if (!this.isActiveRun(runToken, pluginId, operationToken))
-              return;
-            this.requestSoftStartupRefresh();
-          }
-          break;
-        case "short" /* short */:
-        case "long" /* long */:
-          if (isActiveOnStartup) {
-            if (!this.isActiveRun(runToken, pluginId, operationToken))
-              return;
-            await obsidian.disablePluginAndSave(pluginId);
-            if (!this.isActiveRun(runToken, pluginId, operationToken))
-              return;
-            await obsidian.enablePlugin(pluginId);
-            if (!this.isActiveRun(runToken, pluginId, operationToken))
-              return;
-            this.requestSoftStartupRefresh();
-          } else if (!isRunning) {
-            if (!this.isActiveRun(runToken, pluginId, operationToken))
-              return;
-            this.scheduleDelayedStartup(pluginId, startupType, obsidian, runToken, operationToken);
-          }
-          break;
-      }
+      await this.enqueueStartupOperation(async () => {
+        var _a, _b;
+        if (!this.isActiveRun(runToken, pluginId, operationToken))
+          return;
+        const obsidian = this.getObsidianPlugins();
+        const startupType = this.getPluginStartup(pluginId);
+        const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
+        const isRunning = Boolean((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded);
+        switch (startupType) {
+          case "disabled" /* disabled */:
+            if (isActiveOnStartup || isRunning) {
+              await this.runPluginLifecycleMutation(() => obsidian.disablePluginAndSave(pluginId));
+              if (!this.isActiveRun(runToken, pluginId, operationToken))
+                return;
+            }
+            break;
+          case "instant" /* instant */:
+            if (!isActiveOnStartup) {
+              await this.runPluginLifecycleMutation(() => obsidian.enablePluginAndSave(pluginId));
+              if (!this.isActiveRun(runToken, pluginId, operationToken))
+                return;
+              this.requestSoftStartupRefresh();
+            } else if (!isRunning) {
+              await this.runPluginLifecycleMutation(() => obsidian.enablePlugin(pluginId));
+              if (!this.isActiveRun(runToken, pluginId, operationToken))
+                return;
+              this.requestSoftStartupRefresh();
+            }
+            break;
+          case "short" /* short */:
+          case "long" /* long */:
+            if (isActiveOnStartup) {
+              await this.runPluginLifecycleMutation(() => obsidian.disablePluginAndSave(pluginId));
+              if (!this.isActiveRun(runToken, pluginId, operationToken))
+                return;
+              this.scheduleDelayedStartup(pluginId, startupType, runToken, operationToken);
+            } else if (!isRunning) {
+              this.scheduleDelayedStartup(pluginId, startupType, runToken, operationToken);
+            }
+            break;
+        }
+      });
     } catch (e) {
-      console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
+      if (this.isActiveRun(runToken, pluginId, operationToken)) {
+        console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
+      }
     }
   }
-  scheduleDelayedStartup(pluginId, startupType, obsidian, runToken, operationToken) {
+  async startInitialPluginSetup(runToken) {
+    for (const manifest of this.manifests) {
+      if (!this.isActiveRun(runToken))
+        return;
+      await this.setPluginStartup(manifest.id);
+    }
+  }
+  enqueueStartupOperation(operation) {
+    const queued = this.startupQueue.then(operation);
+    this.startupQueue = queued.catch(() => void 0);
+    return queued;
+  }
+  async runPluginLifecycleMutation(operation) {
+    const configuredGap = this.deviceSettings.delayBetweenPlugins;
+    const stabilizationDelay = Number.isFinite(configuredGap) ? Math.max(0, configuredGap) : 40;
+    try {
+      await operation();
+    } finally {
+      await new Promise((resolve) => window.setTimeout(resolve, stabilizationDelay));
+    }
+  }
+  scheduleDelayedStartup(pluginId, startupType, runToken, operationToken) {
     const seconds = startupType === "short" /* short */ ? this.deviceSettings.shortDelaySeconds : this.deviceSettings.longDelaySeconds;
     const stagger = isNaN(this.deviceSettings.delayBetweenPlugins) ? 40 : this.deviceSettings.delayBetweenPlugins;
     const manifestIndex = this.manifests.findIndex((x) => x.id === pluginId);
     const delay = Math.max(0, manifestIndex) * stagger;
     const timeout = window.setTimeout(async () => {
-      var _a, _b;
       if (this.pendingTimeouts.get(pluginId) === timeout) {
         this.pendingTimeouts.delete(pluginId);
       }
       if (!this.isActiveRun(runToken, pluginId, operationToken))
         return;
-      try {
-        if (!((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded)) {
-          if (this.settings.showConsoleLog) {
-            console.log(t("Starting {id} after a {type} delay").replace("{id}", pluginId).replace("{type}", startupType));
-          }
-          await obsidian.enablePlugin(pluginId);
-          if (!this.isActiveRun(runToken, pluginId, operationToken))
-            return;
-          this.requestSoftStartupRefresh();
-        }
-      } catch (e) {
-        console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
-      }
+      void this.runDelayedStartup(pluginId, startupType, runToken, operationToken);
     }, seconds * 1e3 + delay);
     this.pendingTimeouts.set(pluginId, timeout);
     this.scope.add(() => window.clearTimeout(timeout));
+  }
+  async runDelayedStartup(pluginId, startupType, runToken, operationToken) {
+    try {
+      await this.enqueueStartupOperation(async () => {
+        var _a, _b;
+        if (!this.isActiveRun(runToken, pluginId, operationToken) || this.getPluginStartup(pluginId) !== startupType)
+          return;
+        const obsidian = this.getObsidianPlugins();
+        if ((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded)
+          return;
+        if (this.settings.showConsoleLog) {
+          console.log(t("Starting {id} after a {type} delay").replace("{id}", pluginId).replace("{type}", startupType));
+        }
+        await this.runPluginLifecycleMutation(() => obsidian.enablePlugin(pluginId));
+        if (!this.isActiveRun(runToken, pluginId, operationToken))
+          return;
+        this.requestSoftStartupRefresh();
+      });
+    } catch (e) {
+      if (this.isActiveRun(runToken, pluginId, operationToken)) {
+        console.error(t("Failed to load plugin {id} after delay:").replace("{id}", pluginId), e);
+      }
+    }
   }
   clearPendingStartup(pluginId) {
     const pending = this.pendingTimeouts.get(pluginId);
@@ -3098,7 +3141,7 @@ function getSidebarTabIcon(leaf) {
   return normalizedIcon;
 }
 var SidebarTabsFeature = class {
-  constructor(app, plugin) {
+  constructor(app, plugin, onLayoutApplied) {
     this.scanTimer = null;
     this.isLoaded = false;
     this.refreshTimer = null;
@@ -3108,6 +3151,7 @@ var SidebarTabsFeature = class {
     this.loadGeneration = 0;
     this.app = app;
     this.plugin = plugin;
+    this.onLayoutApplied = onLayoutApplied;
   }
   async onload() {
     var _a;
@@ -3237,6 +3281,7 @@ var SidebarTabsFeature = class {
     return settings.elements;
   }
   async applyLayout() {
+    var _a, _b;
     const settings = this.plugin.settings.mySideBar.tabs;
     if (!this.isLoaded || !settings.enabled)
       return;
@@ -3261,6 +3306,7 @@ var SidebarTabsFeature = class {
     const isLeftMatch = JSON.stringify(currentLeft) === JSON.stringify(targetLeftIds);
     const isRightMatch = JSON.stringify(currentRight) === JSON.stringify(targetRightIds);
     if (isLeftMatch && isRightMatch) {
+      await ((_a = this.onLayoutApplied) == null ? void 0 : _a.call(this));
       return;
     }
     const viewStates = {};
@@ -3291,6 +3337,9 @@ var SidebarTabsFeature = class {
       return;
     if (!isRightMatch)
       await this.openInSplit(rightItems, "right", viewStates);
+    if (!this.isLoaded || !settings.enabled)
+      return;
+    await ((_b = this.onLayoutApplied) == null ? void 0 : _b.call(this));
   }
   async openInSplit(items, side, viewStates) {
     for (const item of items) {
@@ -3415,6 +3464,10 @@ var ContextualSplitFeature = class {
     this.originalStates = /* @__PURE__ */ new Map();
     // Support independent active splits for left and right sidebars
     this.activeBindings = /* @__PURE__ */ new Map();
+    this.sideOperationQueues = /* @__PURE__ */ new Map();
+    this.reconciliationQueued = /* @__PURE__ */ new Set();
+    this.pendingSlaveLeaves = /* @__PURE__ */ new Map();
+    this.preferredMasterLeaves = /* @__PURE__ */ new Map();
     this.listeners = [];
     this.observer = null;
     this.isLoaded = false;
@@ -3448,6 +3501,7 @@ var ContextualSplitFeature = class {
         (_b = this.observer) == null ? void 0 : _b.observe(rightSplit.containerEl, { childList: true, subtree: true });
       }
       this.applyAllMasquerades();
+      void this.checkActiveBindingValidity();
     };
     if (this.app.workspace.layoutReady) {
       runInit();
@@ -3461,7 +3515,7 @@ var ContextualSplitFeature = class {
         if (!this.isLoaded)
           return;
         this.applyAllMasquerades();
-        this.checkActiveBindingValidity();
+        void this.checkActiveBindingValidity();
       }, 200))
     );
     this.listeners.push(
@@ -3474,23 +3528,32 @@ var ContextualSplitFeature = class {
     this.listeners.push(
       this.app.workspace.on("active-leaf-change", (0, import_obsidian15.debounce)((leaf) => {
         if (this.isLoaded && leaf)
-          this.handleActiveLeaf(leaf);
+          void this.handleActiveLeaf(leaf);
       }, 50, true))
     );
   }
   onunload() {
     this.isLoaded = false;
     this.loadGeneration++;
+    this.reconciliationQueued.clear();
+    this.sideOperationQueues.clear();
+    this.preferredMasterLeaves.clear();
     this.listeners.forEach((ref) => this.app.workspace.offref(ref));
     this.listeners = [];
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
     }
+    this.pendingSlaveLeaves.forEach((leaf) => {
+      this.removeHiddenHeader(leaf);
+      leaf.detach();
+    });
+    this.pendingSlaveLeaves.clear();
     this.activeBindings.forEach((binding, side) => {
       this.cleanupSplit(binding, side);
     });
     this.activeBindings.clear();
+    this.cleanOrphans();
     const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
     bindings.forEach((b) => {
       const masterLeaves = this.findLeavesByType(b.masterId);
@@ -3549,58 +3612,135 @@ var ContextualSplitFeature = class {
     var _a;
     if (!((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled))
       return;
-    const viewType = leaf.view.getViewType();
-    const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
-    const matchingBinding = bindings.find((b) => b.masterId === viewType);
     const side = this.getLeafSide(leaf);
     if (side === "unknown")
       return;
-    const currentActive = this.activeBindings.get(side);
-    if (matchingBinding) {
-      if (currentActive && currentActive !== matchingBinding) {
-        await this.cleanupSplit(currentActive, side);
+    const viewType = leaf.view.getViewType();
+    const binding = (this.plugin.settings.mySideBar.tabs.bindings || []).find((candidate) => candidate.masterId === viewType);
+    if (binding) {
+      this.preferredMasterLeaves.set(side, { binding, leaf });
+    } else if (leaf.view.containerEl.dataset.assistantContextualSlave !== "true" && this.pendingSlaveLeaves.get(side) !== leaf) {
+      this.preferredMasterLeaves.delete(side);
+    }
+    await this.requestSideReconciliation(side);
+  }
+  async checkActiveBindingValidity() {
+    var _a;
+    if (!this.isLoaded || !((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled))
+      return;
+    await Promise.all([
+      this.requestSideReconciliation("left"),
+      this.requestSideReconciliation("right")
+    ]);
+  }
+  requestSideReconciliation(side) {
+    var _a;
+    if (!this.isLoaded || !((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled)) {
+      return Promise.resolve();
+    }
+    if (this.reconciliationQueued.has(side)) {
+      return this.sideOperationQueues.get(side) || Promise.resolve();
+    }
+    this.reconciliationQueued.add(side);
+    return this.enqueueSideOperation(side, async (generation) => {
+      this.reconciliationQueued.delete(side);
+      await this.reconcileSide(side, generation);
+    });
+  }
+  enqueueSideOperation(side, operation) {
+    const generation = this.loadGeneration;
+    const previous = this.sideOperationQueues.get(side) || Promise.resolve();
+    const run = previous.catch((e) => console.error(`Assistant: Contextual split ${side} operation failed`, e)).then(async () => {
+      if (!this.isLoaded || generation !== this.loadGeneration)
+        return;
+      await operation(generation);
+    }).catch((e) => console.error(`Assistant: Contextual split ${side} operation failed`, e));
+    this.sideOperationQueues.set(side, run);
+    const clearQueue = () => {
+      if (this.sideOperationQueues.get(side) === run) {
+        this.sideOperationQueues.delete(side);
       }
-      this.activeBindings.set(side, matchingBinding);
-      await this.activateSplit(leaf, matchingBinding);
-    } else {
-      if (currentActive) {
-        if (viewType === currentActive.slaveId) {
-          if (leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
-            return;
-          }
+    };
+    void run.then(clearQueue, clearQueue);
+    return run;
+  }
+  async reconcileSide(side, generation) {
+    var _a;
+    if (!this.isLoaded || generation !== this.loadGeneration)
+      return;
+    const desired = this.findVisibleBinding(side);
+    const current = this.activeBindings.get(side);
+    if (!desired) {
+      if (current) {
+        await this.cleanupSplit(current, side);
+        if (this.bindingsMatch(this.activeBindings.get(side), current)) {
+          this.activeBindings.delete(side);
         }
-        if (this.isMasterVisible(currentActive.masterId, side)) {
-          return;
-        }
-        await this.cleanupSplit(currentActive, side);
+      }
+      this.cleanupOrphanSlavesOnSide(side);
+      return;
+    }
+    if (current && !this.bindingsMatch(current, desired.binding)) {
+      await this.cleanupSplit(current, side);
+      if (this.bindingsMatch(this.activeBindings.get(side), current)) {
         this.activeBindings.delete(side);
       }
     }
-  }
-  checkActiveBindingValidity() {
-    const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
-    const sides = ["left", "right"];
-    sides.forEach((side) => {
-      const currentActive = this.activeBindings.get(side);
-      for (const binding of bindings) {
-        if (this.isMasterVisible(binding.masterId, side)) {
-          if (currentActive !== binding) {
-            if (currentActive)
-              this.cleanupSplit(currentActive, side);
-            this.activeBindings.set(side, binding);
-            const leaves = this.findLeavesByType(binding.masterId);
-            const sideLeaf = leaves.find((l) => this.getLeafSide(l) === side && l.view.containerEl.isShown());
-            if (sideLeaf)
-              this.activateSplit(sideLeaf, binding);
-          }
-          return;
-        }
-      }
-      if (currentActive) {
-        this.cleanupSplit(currentActive, side);
-        this.activeBindings.delete(side);
-      }
+    if (!this.isLoaded || generation !== this.loadGeneration)
+      return;
+    const slaveLeaves = this.findSlaveLeaves(desired.binding.slaveId, side);
+    const slaveLeaf = slaveLeaves.shift() || null;
+    slaveLeaves.forEach((duplicate) => {
+      this.removeHiddenHeader(duplicate);
+      duplicate.detach();
     });
+    if (slaveLeaf) {
+      const parentEl = (_a = slaveLeaf.parent) == null ? void 0 : _a.containerEl;
+      const bindingWasInactive = !this.bindingsMatch(current, desired.binding);
+      if (bindingWasInactive || !(parentEl == null ? void 0 : parentEl.hasClass("contextual-split-hidden-header"))) {
+        this.applySplitPresentation(slaveLeaf, desired.binding, desired.masterLeaf);
+      }
+      this.activeBindings.set(side, desired.binding);
+      return;
+    }
+    if (this.bindingsMatch(this.activeBindings.get(side), desired.binding)) {
+      this.activeBindings.delete(side);
+    }
+    await this.activateSplitNow(desired.masterLeaf, desired.binding, side, generation);
+  }
+  findVisibleBinding(side) {
+    const bindings = this.plugin.settings.mySideBar.tabs.bindings || [];
+    const preferred = this.preferredMasterLeaves.get(side);
+    if (preferred) {
+      const binding = bindings.find((candidate) => this.bindingsMatch(candidate, preferred.binding));
+      const isVisible = binding && preferred.leaf.view.getViewType() === binding.masterId && this.getLeafSide(preferred.leaf) === side && preferred.leaf.view.containerEl.isShown();
+      if (binding && isVisible)
+        return { binding, masterLeaf: preferred.leaf };
+      this.preferredMasterLeaves.delete(side);
+    }
+    const active = this.activeBindings.get(side);
+    if (active) {
+      const binding = bindings.find((candidate) => this.bindingsMatch(candidate, active));
+      if (binding) {
+        const masterLeaf = this.findVisibleMasterLeaf(binding.masterId, side);
+        if (masterLeaf)
+          return { binding, masterLeaf };
+      }
+    }
+    for (const binding of bindings) {
+      const masterLeaf = this.findVisibleMasterLeaf(binding.masterId, side);
+      if (masterLeaf)
+        return { binding, masterLeaf };
+    }
+    return null;
+  }
+  findVisibleMasterLeaf(masterId, side) {
+    return this.findLeavesByType(masterId).find(
+      (leaf) => this.getLeafSide(leaf) === side && leaf.view.containerEl.isShown()
+    );
+  }
+  bindingsMatch(first, second) {
+    return !!first && !!second && first.masterId === second.masterId && first.slaveId === second.slaveId;
   }
   isMasterVisible(masterId, side) {
     const leaves = this.findLeavesByType(masterId);
@@ -3639,27 +3779,70 @@ var ContextualSplitFeature = class {
     const side = this.getLeafSide(masterLeaf);
     if (side === "unknown")
       return;
+    await this.enqueueSideOperation(side, async (generation) => {
+      if (!this.isMasterVisible(binding.masterId, side))
+        return;
+      await this.activateSplitNow(masterLeaf, binding, side, generation);
+    });
+  }
+  async activateSplitNow(masterLeaf, binding, side, generation) {
+    var _a;
+    if (!this.isLoaded || generation !== this.loadGeneration)
+      return;
     let slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
     if (!slaveLeaf) {
-      slaveLeaf = this.app.workspace.createLeafBySplit(masterLeaf, "horizontal");
+      try {
+        slaveLeaf = this.app.workspace.createLeafBySplit(masterLeaf, "horizontal");
+      } catch (e) {
+        console.error("Assistant: Failed to create contextual split leaf", e);
+        return;
+      }
+      this.pendingSlaveLeaves.set(side, slaveLeaf);
+      slaveLeaf.view.containerEl.dataset.assistantContextualSlave = "true";
       try {
         await slaveLeaf.setViewState({ type: binding.slaveId });
       } catch (e) {
         console.error("Assistant: Failed to create contextual split slave", e);
-        slaveLeaf.detach();
+        const ownsPendingLeaf = this.pendingSlaveLeaves.get(side) === slaveLeaf;
+        if (ownsPendingLeaf) {
+          this.pendingSlaveLeaves.delete(side);
+          this.removeHiddenHeader(slaveLeaf);
+          slaveLeaf.detach();
+          if (generation === this.loadGeneration && this.bindingsMatch(this.activeBindings.get(side), binding)) {
+            this.activeBindings.delete(side);
+          }
+        }
         return;
       }
-      if (!this.isLoaded) {
+      if (this.pendingSlaveLeaves.get(side) !== slaveLeaf)
+        return;
+      this.pendingSlaveLeaves.delete(side);
+      const desired = this.findVisibleBinding(side);
+      const isCurrent = this.isLoaded && generation === this.loadGeneration && ((_a = this.plugin.settings.mySideBar.tabs) == null ? void 0 : _a.enabled) && this.bindingsMatch(desired == null ? void 0 : desired.binding, binding) && (desired == null ? void 0 : desired.masterLeaf) === masterLeaf && this.getLeafSide(slaveLeaf) === side && slaveLeaf.view.getViewType() === binding.slaveId;
+      if (!isCurrent) {
+        this.removeHiddenHeader(slaveLeaf);
         slaveLeaf.detach();
+        if (this.bindingsMatch(this.activeBindings.get(side), binding)) {
+          this.activeBindings.delete(side);
+        }
         return;
       }
       slaveLeaf.view.containerEl.dataset.assistantContextualSlave = "true";
+      if (!desired)
+        return;
+      binding = desired.binding;
+      masterLeaf = desired.masterLeaf;
     }
+    this.applySplitPresentation(slaveLeaf, binding, masterLeaf);
+    this.activeBindings.set(side, binding);
+  }
+  applySplitPresentation(slaveLeaf, binding, masterLeaf) {
+    var _a, _b;
     const parent = slaveLeaf.parent;
     if (parent && parent.containerEl) {
       parent.containerEl.addClass("contextual-split-hidden-header");
       if (typeof parent.setDimension === "function") {
-        let dim = binding.splitRatio || 50;
+        let dim = (_a = binding.splitRatio) != null ? _a : 50;
         dim = Math.round(dim);
         if (dim < 10)
           dim = 10;
@@ -3668,8 +3851,9 @@ var ContextualSplitFeature = class {
         const split = parent.parent;
         if (split && split.children) {
           const others = split.children.filter((c) => c !== parent);
-          if (others.length > 0) {
-            const sibling = others[0];
+          const masterParent = masterLeaf && ((_b = masterLeaf.parent) == null ? void 0 : _b.parent) === split ? masterLeaf.parent : null;
+          const sibling = masterParent || others[0];
+          if (sibling) {
             try {
               if (typeof parent.setDimension === "function") {
                 parent.setDimension(dim);
@@ -3694,13 +3878,28 @@ var ContextualSplitFeature = class {
     }
   }
   async cleanupSplit(binding, side) {
-    const slaveLeaf = this.findUniqueSlaveLeaf(binding.slaveId, side);
-    if (slaveLeaf) {
+    this.findSlaveLeaves(binding.slaveId, side).forEach((slaveLeaf) => {
       if (slaveLeaf.view.containerEl.dataset.assistantContextualSlave === "true") {
         this.removeHiddenHeader(slaveLeaf);
         slaveLeaf.detach();
       }
-    }
+    });
+  }
+  cleanupOrphanSlavesOnSide(side) {
+    const split = side === "left" ? this.app.workspace.leftSplit : this.app.workspace.rightSplit;
+    if (!split)
+      return;
+    const pending = this.pendingSlaveLeaves.get(side);
+    const orphanLeaves = [];
+    this.iterateLeavesInSplit(split, (leaf) => {
+      if (leaf !== pending && leaf.view.containerEl.dataset.assistantContextualSlave === "true") {
+        orphanLeaves.push(leaf);
+      }
+    });
+    orphanLeaves.forEach((leaf) => {
+      this.removeHiddenHeader(leaf);
+      leaf.detach();
+    });
   }
   removeHiddenHeader(leaf) {
     var _a;
@@ -3716,7 +3915,10 @@ var ContextualSplitFeature = class {
     return leaves;
   }
   findUniqueSlaveLeaf(type, side) {
-    let found = null;
+    return this.findSlaveLeaves(type, side)[0] || null;
+  }
+  findSlaveLeaves(type, side) {
+    const found = [];
     const checkSplit = (split) => {
       if (!split)
         return;
@@ -3724,7 +3926,7 @@ var ContextualSplitFeature = class {
         if (side && this.getLeafSide(l) !== side)
           return;
         if (l.view.getViewType() === type && l.view.containerEl.dataset.assistantContextualSlave === "true") {
-          found = l;
+          found.push(l);
         }
       });
     };
@@ -3810,8 +4012,12 @@ var SidebarManager = class {
     this.plugin = plugin;
     this.autoHideFeature = new AutoHideFeature(app, plugin);
     this.ribbonFeature = new RibbonFeature(app, plugin);
-    this.tabsFeature = new SidebarTabsFeature(app, plugin);
     this.contextualFeature = new ContextualSplitFeature(app, plugin);
+    this.tabsFeature = new SidebarTabsFeature(
+      app,
+      plugin,
+      () => this.contextualFeature.checkActiveBindingValidity()
+    );
   }
   async onload() {
     var _a, _b, _c;

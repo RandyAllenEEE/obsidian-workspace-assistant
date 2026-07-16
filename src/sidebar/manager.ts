@@ -19,8 +19,12 @@ export class SidebarManager {
         this.plugin = plugin;
         this.autoHideFeature = new AutoHideFeature(app, plugin);
         this.ribbonFeature = new RibbonFeature(app, plugin);
-        this.tabsFeature = new SidebarTabsFeature(app, plugin);
         this.contextualFeature = new ContextualSplitFeature(app, plugin);
+        this.tabsFeature = new SidebarTabsFeature(
+            app,
+            plugin,
+            () => this.contextualFeature.checkActiveBindingValidity()
+        );
     }
 
     async onload() {
