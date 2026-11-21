@@ -1608,6 +1608,7 @@ var PluginsManager = class {
     this.startupOperationCounter = 0;
     this.startupOperations = /* @__PURE__ */ new Map();
     this.startupQueue = Promise.resolve();
+    this.failedStartupInstances = /* @__PURE__ */ new Map();
     this.app = app;
     this.plugin = plugin;
   }
@@ -1680,6 +1681,11 @@ var PluginsManager = class {
         if (!this.isActiveRun(runToken, pluginId, operationToken))
           return;
         const obsidian = this.getObsidianPlugins();
+        if (this.failedStartupInstances.has(pluginId)) {
+          await this.runPluginLifecycleMutation(() => this.cleanupFailedStartup(pluginId));
+          if (!this.isActiveRun(runToken, pluginId, operationToken))
+            return;
+        }
         const startupType = this.getPluginStartup(pluginId);
         const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
         const isRunning = Boolean((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded);
@@ -1693,12 +1699,12 @@ var PluginsManager = class {
             break;
           case "instant" /* instant */:
             if (!isActiveOnStartup) {
-              await this.runPluginLifecycleMutation(() => obsidian.enablePluginAndSave(pluginId));
+              await this.runPluginLifecycleMutation(() => this.enableManagedPlugin(pluginId, true));
               if (!this.isActiveRun(runToken, pluginId, operationToken))
                 return;
               this.requestSoftStartupRefresh();
             } else if (!isRunning) {
-              await this.runPluginLifecycleMutation(() => obsidian.enablePlugin(pluginId));
+              await this.runPluginLifecycleMutation(() => this.enableManagedPlugin(pluginId));
               if (!this.isActiveRun(runToken, pluginId, operationToken))
                 return;
               this.requestSoftStartupRefresh();
@@ -1724,11 +1730,51 @@ var PluginsManager = class {
     }
   }
   async startInitialPluginSetup(runToken) {
+    while (this.getObsidianPlugins().loadingPluginId) {
+      if (!this.isActiveRun(runToken))
+        return;
+      await new Promise((resolve) => window.setTimeout(resolve, 40));
+    }
     for (const manifest of this.manifests) {
       if (!this.isActiveRun(runToken))
         return;
       await this.setPluginStartup(manifest.id);
     }
+  }
+  async enableManagedPlugin(pluginId, persist = false) {
+    var _a, _b;
+    const obsidian = this.getObsidianPlugins();
+    const previousInstance = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId];
+    try {
+      const result = persist ? await obsidian.enablePluginAndSave(pluginId) : await obsidian.enablePlugin(pluginId);
+      if (result === false)
+        throw new Error(`Obsidian reported a failed plugin startup: ${pluginId}`);
+    } catch (error) {
+      const failedInstance = (_b = obsidian.plugins) == null ? void 0 : _b[pluginId];
+      if (failedInstance && failedInstance !== previousInstance) {
+        this.failedStartupInstances.set(pluginId, failedInstance);
+        try {
+          await this.cleanupFailedStartup(pluginId);
+        } catch (cleanupError) {
+          console.error(`[Obsidian Assistant] Failed to clean up plugin ${pluginId}:`, cleanupError);
+        }
+      }
+      throw error;
+    }
+  }
+  async cleanupFailedStartup(pluginId) {
+    var _a, _b;
+    const failedInstance = this.failedStartupInstances.get(pluginId);
+    if (!failedInstance)
+      return;
+    const obsidian = this.getObsidianPlugins();
+    if (((_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) === failedInstance) {
+      await obsidian.disablePlugin(pluginId);
+      if (((_b = obsidian.plugins) == null ? void 0 : _b[pluginId]) === failedInstance) {
+        throw new Error(`Failed plugin instance is still registered: ${pluginId}`);
+      }
+    }
+    this.failedStartupInstances.delete(pluginId);
   }
   enqueueStartupOperation(operation) {
     const queued = this.startupQueue.then(operation);
@@ -1767,12 +1813,15 @@ var PluginsManager = class {
         if (!this.isActiveRun(runToken, pluginId, operationToken) || this.getPluginStartup(pluginId) !== startupType)
           return;
         const obsidian = this.getObsidianPlugins();
+        await this.cleanupFailedStartup(pluginId);
+        if (!this.isActiveRun(runToken, pluginId, operationToken))
+          return;
         if ((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded)
           return;
         if (this.settings.showConsoleLog) {
           console.log(t("Starting {id} after a {type} delay").replace("{id}", pluginId).replace("{type}", startupType));
         }
-        await this.runPluginLifecycleMutation(() => obsidian.enablePlugin(pluginId));
+        await this.runPluginLifecycleMutation(() => this.enableManagedPlugin(pluginId));
         if (!this.isActiveRun(runToken, pluginId, operationToken))
           return;
         this.requestSoftStartupRefresh();
