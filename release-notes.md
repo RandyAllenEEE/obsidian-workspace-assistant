@@ -4,3 +4,5 @@
 
 - Use compact settings rows and consistent disclosure controls across the existing workspace modules.
 - Save status bar preferences when a new item is discovered or the user changes a setting.
+
+The release's `license-notices.zip` contains the licenses and third-party notices. Use the matching source archive to rebuild the plugin.

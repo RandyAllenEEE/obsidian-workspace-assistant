@@ -6,6 +6,7 @@ import {
 import { basename, join, resolve } from 'node:path';
 
 const pluginFiles = ['main.js', 'manifest.json', 'styles.css'];
+const licenseBundle = 'license-notices.zip';
 const licenseFiles = [
   'LICENSE',
   'THIRD_PARTY_NOTICES.md',
@@ -62,19 +63,20 @@ function verifyPluginFiles(directory) {
   });
 }
 
-function stage(buildDirectory, destination, extraFiles) {
+function stage(buildDirectory, destination) {
   if (existsSync(destination)) {
     throw new Error('The artifact staging directory must be new: ' + destination);
   }
   verifyPluginFiles(buildDirectory);
   mkdirSync(destination, { recursive: true });
-  for (const file of [
-    ...pluginFiles.map((name) => join(buildDirectory, name)),
-    ...licenseFiles,
-    ...extraFiles,
-  ]) {
+  for (const file of pluginFiles.map((name) => join(buildDirectory, name))) {
     copyFileSync(file, join(destination, basename(file)));
   }
+  execFileSync('python', [
+    '.github/scripts/package-compliance.py',
+    join(destination, licenseBundle),
+    ...licenseFiles,
+  ], { stdio: 'inherit' });
 }
 
 function sha256(bytes) {
@@ -105,15 +107,12 @@ function publish(tag, directory) {
   }
   verifyVersion(tag);
   verifyPluginFiles(directory);
-  for (const licenseFile of licenseFiles) {
-    const stagedLicense = join(directory, basename(licenseFile));
-    if (!existsSync(stagedLicense) || !statSync(stagedLicense).size) {
-      throw new Error('Missing or empty release license: ' + basename(licenseFile));
-    }
-  }
-
   const repo = process.env.GITHUB_REPOSITORY;
   const files = readdirSync(directory).sort();
+  const expected = [...pluginFiles, licenseBundle].sort();
+  if (files.join('\n') !== expected.join('\n')) {
+    throw new Error('The release must contain the plugin files and ' + licenseBundle);
+  }
   const localAssets = new Map(files.map((name) => {
     const bytes = readFileSync(join(directory, name));
     if (!bytes.length) throw new Error('Empty release attachment: ' + name);
@@ -158,7 +157,7 @@ switch (action) {
     break;
   case 'stage':
     verifyVersion();
-    stage(resolve(args[0]), resolve(args[1]), args.slice(2));
+    stage(resolve(args[0]), resolve(args[1]));
     break;
   case 'publish':
     publish(args[0], resolve(args[1]));
