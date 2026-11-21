@@ -1,10 +1,10 @@
-# Obsidian Assistant
+# Workspace Assistant
 
-An all-in-one assistant plugin that integrates multiple powerful Obsidian plugins into a unified, modular system. Obsidian Assistant combines the functionality of popular plugins while adding improvements in architecture, internationalization, and user experience.
+An all-in-one assistant plugin that integrates multiple powerful Obsidian plugins into a unified, modular system. Workspace Assistant combines the functionality of popular plugins while adding improvements in architecture, internationalization, and user experience.
 
 ## 🌟 Features
 
-Obsidian Assistant provides **five independent modules**, each can be enabled or disabled separately:
+Workspace Assistant provides **five independent modules**, each can be enabled or disabled separately:
 
 ### 📝 MySnippets - CSS Snippet Manager
 Manage your CSS snippets with ease through a convenient status bar menu.
@@ -50,12 +50,39 @@ Complete control over your Obsidian sidebars, tabs, and ribbons.
 
 ## 📦 Installation
 
+### From a GitHub Release
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/RandyAllenEEE/obsidian-workspace-assistant/releases/latest).
+2. Copy the files to `.obsidian/plugins/obsidian-workspace-assistant/` in your vault and enable Workspace Assistant.
+
+### Migrate an existing Obsidian Assistant installation
+
+If your vault already uses `obsidian-assistant`, download the three new release
+attachments into one directory. From a clone of this repository, preview the
+migration with Node.js 24:
+
+```sh
+node scripts/migrate-installation.mjs "/path/to/vault/.obsidian" "/path/to/release"
+```
+
+Close Obsidian on devices using the vault and pause any sync that copies its
+configuration. Run the same command with `--apply`, then reopen Obsidian.
+The script moves the old installation into a backup next to the vault, preserves
+its settings, and updates the enabled-plugin list, shortcuts, and workspace
+references. Keep the backup until you have verified your settings. If needed,
+close Obsidian, move the new installation out of the plugins directory, then
+restore the old plugin folder and the backed-up JSON files to their original
+locations.
+
+If a button or automation uses an exact command display name such as
+`Obsidian Assistant: …`, update the prefix to `Workspace Assistant: …`.
+
 ### Manual Build
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/obsidian-assistant.git
-cd obsidian-assistant
+git clone https://github.com/RandyAllenEEE/obsidian-workspace-assistant.git
+cd obsidian-workspace-assistant
 
 # Install dependencies
 npm install
@@ -70,7 +97,7 @@ npm run build
 
 ### Module Management
 Each module can be independently enabled or disabled in the plugin settings:
-1. Open Settings → Obsidian Assistant
+1. Open Settings → Workspace Assistant
 2. Navigate to the module you want to configure
 3. Toggle the "Enable" switch
 
@@ -99,7 +126,7 @@ Each module can be independently enabled or disabled in the plugin settings:
 
 ## 🌐 Internationalization
 
-Obsidian Assistant supports multiple languages:
+Workspace Assistant supports multiple languages:
 - 🇬🇧 English
 - 🇨🇳 简体中文 (Simplified Chinese)
 
@@ -109,7 +136,7 @@ The language will automatically match your Obsidian interface language.
 
 ## 🙏 Acknowledgments
 
-Obsidian Assistant integrates and enhances the work of several amazing plugin developers. We are deeply grateful to:
+Workspace Assistant integrates and enhances the work of several amazing plugin developers. We are deeply grateful to:
 
 ### Original Plugin Authors
 

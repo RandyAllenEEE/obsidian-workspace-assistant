@@ -22,7 +22,7 @@ export default class AssistantPlugin extends Plugin {
     sidebarManager: SidebarManager;
 
     async onload() {
-        console.log(t('Loading Obsidian Assistant...'));
+        console.log(t('Loading Workspace Assistant...'));
         console.log(t('Loading Settings...'));
         await this.loadSettings();
 
@@ -75,7 +75,7 @@ export default class AssistantPlugin extends Plugin {
     }
 
     onunload() {
-        console.log(t('Unloading Obsidian Assistant...'));
+        console.log(t('Unloading Workspace Assistant...'));
         this.foldersManager?.onunload();
         this.pluginsManager?.onunload();
         this.statusBarManager?.onunload();
@@ -109,7 +109,7 @@ class AssistantSettingsTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
-        containerEl.createEl('h2', { text: t('Obsidian Assistant Settings') });
+        containerEl.createEl('h2', { text: t('Workspace Assistant Settings') });
 
         // MyFolders Section
         this.addPluginSection(

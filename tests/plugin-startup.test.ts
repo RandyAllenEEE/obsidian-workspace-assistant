@@ -5,7 +5,7 @@ import { LoadingMethod, normalizeSettings } from '../src/settings';
 function harness(type = LoadingMethod.short) {
     vi.useFakeTimers();
     const plugin = {
-        manifest: { id: 'obsidian-assistant' }, settings: normalizeSettings(),
+        manifest: { id: 'obsidian-workspace-assistant' }, settings: normalizeSettings(),
         saveSettings: vi.fn(async () => undefined),
         statusBarManager: { refreshAfterSoftStartup: vi.fn() },
         sidebarManager: { refreshAfterSoftStartup: vi.fn() }
@@ -85,7 +85,7 @@ describe('managed plugin startup failures', () => {
 
     it('waits for native startup to finish before starting its own plugin lifecycle', async () => {
         const { manager, plugins } = harness(LoadingMethod.instant);
-        plugins.loadingPluginId = 'obsidian-assistant';
+        plugins.loadingPluginId = 'obsidian-workspace-assistant';
         await manager.onload();
         await vi.advanceTimersByTimeAsync(100);
         expect(plugins.enablePluginAndSave).not.toHaveBeenCalled();

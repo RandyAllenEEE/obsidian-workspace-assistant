@@ -303,7 +303,7 @@ var import_obsidian = require("obsidian");
 var en_default = {
   // General
   "Feature is disabled.": "Feature is disabled.",
-  "Obsidian Assistant Settings": "Obsidian Assistant Settings",
+  "Workspace Assistant Settings": "Workspace Assistant Settings",
   // My Folders
   "My Folders": "My Folders",
   "Loading MyFolders module": "Loading MyFolders module",
@@ -334,9 +334,9 @@ var en_default = {
   "[WARNING: UNSTABLE] Also hide hidden folders in the https://github.com/pjeby/quick-explorer plugin. Not affiliated with quick-explorer's author.": "[WARNING: UNSTABLE] Also hide hidden folders in the https://github.com/pjeby/quick-explorer plugin. Not affiliated with quick-explorer's author.",
   // My Plugins
   "My Plugins": "My Plugins",
-  "Loading Obsidian Assistant...": "Loading Obsidian Assistant...",
+  "Loading Workspace Assistant...": "Loading Workspace Assistant...",
   "Loading Settings...": "Loading Settings...",
-  "Unloading Obsidian Assistant...": "Unloading Obsidian Assistant...",
+  "Unloading Workspace Assistant...": "Unloading Workspace Assistant...",
   "Starting {id} after a {type} delay": "Starting {id} after a {type} delay",
   "Failed to load plugin {id} after delay:": "Failed to load plugin {id} after delay:",
   "Dual Configurations": "Dual Configurations",
@@ -502,7 +502,7 @@ var en_default = {
 var zh_default = {
   // General
   "Feature is disabled.": "\u529F\u80FD\u5DF2\u7981\u7528\u3002",
-  "Obsidian Assistant Settings": "Obsidian Assistant \u8BBE\u7F6E",
+  "Workspace Assistant Settings": "Workspace Assistant \u8BBE\u7F6E",
   // My Folders
   "My Folders": "\u6211\u7684\u6587\u4EF6\u5939",
   "Toggle visibility of hidden folders": "\u5207\u6362\u9690\u85CF\u6587\u4EF6\u5939\u7684\u53EF\u89C1\u6027",
@@ -532,9 +532,9 @@ var zh_default = {
   "[WARNING: UNSTABLE] Also hide hidden folders in the https://github.com/pjeby/quick-explorer plugin. Not affiliated with quick-explorer's author.": "[\u8B66\u544A\uFF1A\u4E0D\u7A33\u5B9A] \u540C\u65F6\u9690\u85CF https://github.com/pjeby/quick-explorer \u63D2\u4EF6\u4E2D\u7684\u9690\u85CF\u6587\u4EF6\u5939\u3002\u4E0E quick-explorer \u7684\u4F5C\u8005\u65E0\u5173\u3002",
   // My Plugins
   "My Plugins": "\u6211\u7684\u63D2\u4EF6",
-  "Loading Obsidian Assistant...": "\u6B63\u5728\u52A0\u8F7D Obsidian Assistant...",
+  "Loading Workspace Assistant...": "\u6B63\u5728\u52A0\u8F7D Workspace Assistant...",
   "Loading Settings...": "\u6B63\u5728\u52A0\u8F7D\u8BBE\u7F6E...",
-  "Unloading Obsidian Assistant...": "\u6B63\u5728\u5378\u8F7D Obsidian Assistant...",
+  "Unloading Workspace Assistant...": "\u6B63\u5728\u5378\u8F7D Workspace Assistant...",
   "Starting {id} after a {type} delay": "\u5EF6\u8FDF {type} \u540E\u542F\u52A8 {id}",
   "Failed to load plugin {id} after delay:": "\u5EF6\u8FDF\u540E\u52A0\u8F7D\u63D2\u4EF6 {id} \u5931\u8D25\uFF1A",
   "Dual Configurations": "\u53CC\u91CD\u914D\u7F6E",
@@ -1756,7 +1756,7 @@ var PluginsManager = class {
         try {
           await this.cleanupFailedStartup(pluginId);
         } catch (cleanupError) {
-          console.error(`[Obsidian Assistant] Failed to clean up plugin ${pluginId}:`, cleanupError);
+          console.error(`[Workspace Assistant] Failed to clean up plugin ${pluginId}:`, cleanupError);
         }
       }
       throw error;
@@ -2506,7 +2506,7 @@ var AutoHideFeature = class {
     if (this.settings.overlayMode) {
       document.body.classList.add("sidebar-overlay-mode");
     }
-    document.body.classList.remove("obsidian-assistant-overlay-mode");
+    document.body.classList.remove("obsidian-workspace-assistant-overlay-mode");
     document.body.classList.add("open-sidebar-hover-plugin");
     this.updateCSSVariables();
     const runInit = () => {
@@ -2595,9 +2595,9 @@ var AutoHideFeature = class {
     this.isLoading = false;
     this.loadGeneration++;
     document.body.classList.remove("sidebar-overlay-mode");
-    document.body.classList.remove("obsidian-assistant-overlay-mode");
+    document.body.classList.remove("obsidian-workspace-assistant-overlay-mode");
     document.body.classList.remove("open-sidebar-hover-plugin");
-    const styleEl = document.getElementById("obsidian-assistant-sidebar-variables");
+    const styleEl = document.getElementById("obsidian-workspace-assistant-sidebar-variables");
     if (styleEl)
       styleEl.remove();
     if (!this.isInitialized)
@@ -2722,7 +2722,7 @@ var AutoHideFeature = class {
   }
   updateCSSVariables() {
     const styleEl = document.createElement("style");
-    styleEl.id = "obsidian-assistant-sidebar-variables";
+    styleEl.id = "obsidian-workspace-assistant-sidebar-variables";
     const existingStyle = document.getElementById(styleEl.id);
     if (existingStyle)
       existingStyle.remove();
@@ -3134,7 +3134,7 @@ var RibbonFeature = class {
     if (this.originalPlacements.has(el) || !el.parentElement)
       return;
     const parent = el.parentElement;
-    const marker = document.createComment("obsidian-assistant-ribbon-placement");
+    const marker = document.createComment("obsidian-workspace-assistant-ribbon-placement");
     parent.insertBefore(marker, el);
     this.originalPlacements.set(el, {
       parent,
@@ -4621,7 +4621,7 @@ function handleTabDrag(e, row, el, manager, container) {
 // src/main.ts
 var AssistantPlugin = class extends import_obsidian18.Plugin {
   async onload() {
-    console.log(t("Loading Obsidian Assistant..."));
+    console.log(t("Loading Workspace Assistant..."));
     console.log(t("Loading Settings..."));
     await this.loadSettings();
     this.foldersManager = new FoldersManager(this.app, this);
@@ -4669,7 +4669,7 @@ var AssistantPlugin = class extends import_obsidian18.Plugin {
   }
   onunload() {
     var _a, _b, _c, _d, _e;
-    console.log(t("Unloading Obsidian Assistant..."));
+    console.log(t("Unloading Workspace Assistant..."));
     (_a = this.foldersManager) == null ? void 0 : _a.onunload();
     (_b = this.pluginsManager) == null ? void 0 : _b.onunload();
     (_c = this.statusBarManager) == null ? void 0 : _c.onunload();
@@ -4693,7 +4693,7 @@ var AssistantSettingsTab = class extends import_obsidian18.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: t("Obsidian Assistant Settings") });
+    containerEl.createEl("h2", { text: t("Workspace Assistant Settings") });
     this.addPluginSection(
       containerEl,
       t("My Folders"),

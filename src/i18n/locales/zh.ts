@@ -1,7 +1,7 @@
 export default {
     // General
     "Feature is disabled.": "功能已禁用。",
-    "Obsidian Assistant Settings": "Obsidian Assistant 设置",
+    "Workspace Assistant Settings": "Workspace Assistant 设置",
 
     // My Folders
     "My Folders": "我的文件夹",
@@ -33,9 +33,9 @@ export default {
 
     // My Plugins
     "My Plugins": "我的插件",
-    "Loading Obsidian Assistant...": "正在加载 Obsidian Assistant...",
+    "Loading Workspace Assistant...": "正在加载 Workspace Assistant...",
     "Loading Settings...": "正在加载设置...",
-    "Unloading Obsidian Assistant...": "正在卸载 Obsidian Assistant...",
+    "Unloading Workspace Assistant...": "正在卸载 Workspace Assistant...",
     "Starting {id} after a {type} delay": "延迟 {type} 后启动 {id}",
     "Failed to load plugin {id} after delay:": "延迟后加载插件 {id} 失败：",
     "Dual Configurations": "双重配置",

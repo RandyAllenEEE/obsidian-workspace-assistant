@@ -27,7 +27,7 @@ export class App {
 
 export class Plugin {
     app: any;
-    manifest = { id: "obsidian-assistant" };
+    manifest = { id: "obsidian-workspace-assistant" };
     private data: any = null;
 
     constructor(app?: any) {

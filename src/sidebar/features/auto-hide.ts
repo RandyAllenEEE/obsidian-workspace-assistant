@@ -157,7 +157,7 @@ export class AutoHideFeature {
         if (this.settings.overlayMode) {
             document.body.classList.add("sidebar-overlay-mode");
         }
-        document.body.classList.remove("obsidian-assistant-overlay-mode");
+        document.body.classList.remove("obsidian-workspace-assistant-overlay-mode");
         document.body.classList.add("open-sidebar-hover-plugin");
         this.updateCSSVariables();
 
@@ -250,11 +250,11 @@ export class AutoHideFeature {
         this.loadGeneration++;
 
         document.body.classList.remove("sidebar-overlay-mode");
-        document.body.classList.remove("obsidian-assistant-overlay-mode");
+        document.body.classList.remove("obsidian-workspace-assistant-overlay-mode");
         document.body.classList.remove("open-sidebar-hover-plugin");
 
         // Remove CSS variables style element
-        const styleEl = document.getElementById('obsidian-assistant-sidebar-variables');
+        const styleEl = document.getElementById('obsidian-workspace-assistant-sidebar-variables');
         if (styleEl) styleEl.remove();
 
         if (!this.isInitialized) return;
@@ -403,7 +403,7 @@ export class AutoHideFeature {
 
     updateCSSVariables() {
         const styleEl = document.createElement('style');
-        styleEl.id = 'obsidian-assistant-sidebar-variables';
+        styleEl.id = 'obsidian-workspace-assistant-sidebar-variables';
         const existingStyle = document.getElementById(styleEl.id);
         if (existingStyle) existingStyle.remove();
 

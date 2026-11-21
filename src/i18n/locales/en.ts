@@ -1,7 +1,7 @@
 export default {
     // General
     "Feature is disabled.": "Feature is disabled.",
-    "Obsidian Assistant Settings": "Obsidian Assistant Settings",
+    "Workspace Assistant Settings": "Workspace Assistant Settings",
 
     // My Folders
     "My Folders": "My Folders",
@@ -34,9 +34,9 @@ export default {
 
     // My Plugins
     "My Plugins": "My Plugins",
-    "Loading Obsidian Assistant...": "Loading Obsidian Assistant...",
+    "Loading Workspace Assistant...": "Loading Workspace Assistant...",
     "Loading Settings...": "Loading Settings...",
-    "Unloading Obsidian Assistant...": "Unloading Obsidian Assistant...",
+    "Unloading Workspace Assistant...": "Unloading Workspace Assistant...",
     "Starting {id} after a {type} delay": "Starting {id} after a {type} delay",
     "Failed to load plugin {id} after delay:": "Failed to load plugin {id} after delay:",
     "Dual Configurations": "Dual Configurations",

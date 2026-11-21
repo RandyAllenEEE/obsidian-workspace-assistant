@@ -57,7 +57,7 @@ function createVault() {
 function createPlugin() {
     return {
         settings: normalizeSettings(),
-        manifest: { id: "obsidian-assistant" },
+        manifest: { id: "obsidian-workspace-assistant" },
         saveSettings: vi.fn(async () => undefined),
         addRibbonIcon: vi.fn((_icon: string, title: string, callback: (event: MouseEvent) => void) => {
             const button = document.createElement("button");

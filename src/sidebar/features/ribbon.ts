@@ -277,7 +277,7 @@ export class RibbonFeature {
     private rememberPlacement(el: HTMLElement) {
         if (this.originalPlacements.has(el) || !el.parentElement) return;
         const parent = el.parentElement;
-        const marker = document.createComment("obsidian-assistant-ribbon-placement");
+        const marker = document.createComment("obsidian-workspace-assistant-ribbon-placement");
         parent.insertBefore(marker, el);
         this.originalPlacements.set(el, {
             parent,

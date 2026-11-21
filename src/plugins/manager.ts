@@ -188,7 +188,7 @@ export class PluginsManager {
                 try {
                     await this.cleanupFailedStartup(pluginId);
                 } catch (cleanupError) {
-                    console.error(`[Obsidian Assistant] Failed to clean up plugin ${pluginId}:`, cleanupError);
+                    console.error(`[Workspace Assistant] Failed to clean up plugin ${pluginId}:`, cleanupError);
                 }
             }
             throw error;
