@@ -6,6 +6,15 @@ import {
 import { basename, join, resolve } from 'node:path';
 
 const pluginFiles = ['main.js', 'manifest.json', 'styles.css'];
+const licenseFiles = [
+  'LICENSE',
+  'THIRD_PARTY_NOTICES.md',
+  'licenses/Hide-Folders-MIT.txt',
+  'licenses/Lazy-Plugin-Loader-MIT.txt',
+  'licenses/MySnippets-MPL-2.0.txt',
+  'licenses/Quick-Peek-Sidebar-MIT.txt',
+  'licenses/Workspace-Assistant-MIT.txt',
+];
 const manifest = readJson('manifest.json');
 
 function readJson(file) {
@@ -61,6 +70,7 @@ function stage(buildDirectory, destination, extraFiles) {
   mkdirSync(destination, { recursive: true });
   for (const file of [
     ...pluginFiles.map((name) => join(buildDirectory, name)),
+    ...licenseFiles,
     ...extraFiles,
   ]) {
     copyFileSync(file, join(destination, basename(file)));
@@ -95,6 +105,12 @@ function publish(tag, directory) {
   }
   verifyVersion(tag);
   verifyPluginFiles(directory);
+  for (const licenseFile of licenseFiles) {
+    const stagedLicense = join(directory, basename(licenseFile));
+    if (!existsSync(stagedLicense) || !statSync(stagedLicense).size) {
+      throw new Error('Missing or empty release license: ' + basename(licenseFile));
+    }
+  }
 
   const repo = process.env.GITHUB_REPOSITORY;
   const files = readdirSync(directory).sort();

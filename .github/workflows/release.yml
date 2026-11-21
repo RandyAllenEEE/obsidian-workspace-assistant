@@ -40,6 +40,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Audit dependencies
+        run: npm audit --omit=optional
+
       - name: Run checks and build
         run: |
           npm test

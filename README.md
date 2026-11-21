@@ -53,7 +53,8 @@ Complete control over your Obsidian sidebars, tabs, and ribbons.
 ### From a GitHub Release
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/RandyAllenEEE/obsidian-workspace-assistant/releases/latest).
-2. Copy the files to `.obsidian/plugins/obsidian-workspace-assistant/` in your vault and enable Workspace Assistant.
+2. Copy the files to `.obsidian/plugins/obsidian-workspace-assistant/` in your vault.
+3. Restart Obsidian and enable Workspace Assistant. For upgrades, replace the three release files and keep `data.json`.
 
 ### Migrate an existing Obsidian Assistant installation
 
@@ -84,12 +85,18 @@ If a button or automation uses an exact command display name such as
 git clone https://github.com/RandyAllenEEE/obsidian-workspace-assistant.git
 cd obsidian-workspace-assistant
 
-# Install dependencies
-npm install
+# Install dependencies with Node.js 24
+npm ci
 
 # Build the plugin
 npm run build
 ```
+
+The installable files are in `build/`.
+
+### Publishing
+
+Run the checks in [the release workflow](.github/workflows/release.yml) and push the updated default branch. Once its checks pass, push only the `X.Y.Z` tag that matches `manifest.json`. The tag run rebuilds, packages, and verifies the attachments before publishing the GitHub Release.
 
 ---
 
@@ -149,18 +156,17 @@ Workspace Assistant integrates and enhances the work of several amazing plugin d
 3. **[Alan Grainger](https://github.com/alangrainger)** - Creator of [Lazy Plugin Loader](https://github.com/alangrainger/obsidian-lazy-plugins)
    - Original delayed plugin loading mechanism
 
-4. **[Kacper Darowski (opisek)](https://opisek.net/)** - Creator of [Status Bar Organizer](https://github.com/Phrisk/obsidian-statusbar-organizer)
+4. **[Kacper Darowski (opisek)](https://opisek.net/)** - Creator of [Status Bar Organizer](https://github.com/Opisek/obsidian-statusbar-organizer)
    - Original status bar customization system
 
-5. **[Mara V (marah)](https://github.com/marah)** - Creator of [Obsidian Quick Peek Sidebar](https://github.com/marah/obsidian-quick-peek-sidebar)
+5. **[Bradley Wyatt](https://github.com/bwya77)** - Creator of [Obsidian Quick Peek Sidebar](https://github.com/bwya77/obsidian-quick-peek-sidebar)
    - Original sidebar auto-hide and hover interaction logic
 
 ---
 
 ## 📄 License
 
-MIT License
-
-Copyright (c) 2026 Randy Allen
-
-This project integrates code from multiple open-source plugins (see Acknowledgments). Each original plugin retains its original license and copyright. The integration work, TypeScript refactoring, and enhancements are licensed under MIT.
+The combined release is distributed under [GPL-3.0-only](LICENSE). Randy Allen's
+original contributions are also available under the [MIT License](licenses/Workspace-Assistant-MIT.txt).
+The [third-party notices](THIRD_PARTY_NOTICES.md) identify the upstream terms and
+the corresponding source available with each Release.
