@@ -1,6 +1,7 @@
 import { App, Modal, Setting, TextComponent, TextAreaComponent, Notice } from "obsidian";
 import { SidebarManager } from "./manager";
 import { t } from "../i18n/helpers";
+import { createSettingsList } from "../settings-list";
 
 export class GroupModal extends Modal {
     manager: SidebarManager;
@@ -20,35 +21,37 @@ export class GroupModal extends Modal {
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
+        contentEl.addClass("workspace-assistant-settings-modal");
 
         contentEl.createEl("h2", { text: t("Add New Group") });
 
-        new Setting(contentEl)
+        const fields = createSettingsList(contentEl);
+        new Setting(fields)
             .setName(t("Master View ID"))
             .setDesc(t("The view ID of the main tab (will be replaced by the group tab)"))
             .addText(text => text
                 .onChange(value => this.masterId = value));
 
-        new Setting(contentEl)
+        new Setting(fields)
             .setName(t("Slave View ID"))
             .setDesc(t("The view ID of the split tab (hidden until group is active)"))
             .addText(text => text
                 .onChange(value => this.slaveId = value));
 
-        new Setting(contentEl)
+        new Setting(fields)
             .setName(t("Group Name"))
             .setDesc(t("Name to display on the tab"))
             .addText(text => text
                 .onChange(value => this.groupName = value));
 
-        new Setting(contentEl)
+        new Setting(fields)
             .setName(t("Group Icon"))
             .setDesc(t("SVG Code or Lucide Icon Name"))
             .addTextArea(text => text
                 .setPlaceholder('<svg...> or "star"')
                 .onChange(value => this.groupSvg = value));
 
-        new Setting(contentEl)
+        new Setting(fields)
             .addButton(btn => btn
                 .setButtonText(t("Add Group"))
                 .setCta()

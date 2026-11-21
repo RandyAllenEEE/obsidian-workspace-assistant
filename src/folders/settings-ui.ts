@@ -6,26 +6,6 @@ export function renderFoldersSettings(containerEl: HTMLElement, manager: Folders
     const plugin = manager.plugin;
     const settings = manager.settings;
 
-    const experimentalSettingsContainerEl = document.createElement("details");
-    experimentalSettingsContainerEl.style.marginBottom = '10px';
-    experimentalSettingsContainerEl.style.border = '1px solid var(--background-modifier-border)';
-    experimentalSettingsContainerEl.style.borderRadius = '5px';
-    experimentalSettingsContainerEl.style.padding = '0.5em';
-
-    const experimentalSettingsTitleEl = document.createElement("summary");
-    experimentalSettingsTitleEl.innerText = t("Experimental & Unstable Settings");
-    experimentalSettingsTitleEl.style.cursor = 'pointer';
-    experimentalSettingsTitleEl.style.fontWeight = 'bold';
-    experimentalSettingsTitleEl.style.outline = 'none';
-
-    experimentalSettingsContainerEl.appendChild(experimentalSettingsTitleEl);
-
-    // Create a wrapper for content to enforce left border style
-    const experimentalContent = experimentalSettingsContainerEl.createDiv();
-    experimentalContent.style.marginTop = '10px';
-    experimentalContent.style.paddingLeft = '5px';
-    experimentalContent.style.borderLeft = '2px solid var(--background-modifier-border)';
-
     new Setting(containerEl)
         .setName(t("Folders to hide"))
         .setDesc(t("The names of the folders to hide, one per line. Either exact folder-names, startsWith::FOLDERPREFIX, or endsWith::FOLDERSUFFIX"))
@@ -96,7 +76,13 @@ export function renderFoldersSettings(containerEl: HTMLElement, manager: Folders
                 await plugin.saveSettings();
             }));
 
-    new Setting(experimentalContent)
+    const experimentalSection = containerEl.createEl("details", { cls: "assistant-module-frame assistant-settings-subsection" });
+    experimentalSection.createEl("summary", {
+        cls: "assistant-settings-section-header",
+        text: t("Experimental & Unstable Settings")
+    });
+
+    new Setting(experimentalSection.createDiv())
         .setName(t("[EXPERIMENTAL] Compatibility: quick-explorer by pjeby"))
         .setDesc(t("[WARNING: UNSTABLE] Also hide hidden folders in the https://github.com/pjeby/quick-explorer plugin. Not affiliated with quick-explorer's author."))
         .addToggle(toggle => toggle
@@ -105,8 +91,5 @@ export function renderFoldersSettings(containerEl: HTMLElement, manager: Folders
                 settings.enableCompatQuickExplorer = value;
                 await plugin.saveSettings();
             }));
-
-    containerEl.appendChild(document.createElement("br"));
-    containerEl.appendChild(experimentalSettingsContainerEl);
 }
 

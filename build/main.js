@@ -4,9 +4,11 @@ See LICENSE, THIRD_PARTY_NOTICES.md and the source archive in the matching relea
 https://github.com/RandyAllenEEE/obsidian-workspace-assistant/releases
 */
 
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -20,6 +22,14 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/main.ts
@@ -1021,21 +1031,6 @@ var import_obsidian3 = require("obsidian");
 function renderFoldersSettings(containerEl, manager) {
   const plugin = manager.plugin;
   const settings = manager.settings;
-  const experimentalSettingsContainerEl = document.createElement("details");
-  experimentalSettingsContainerEl.style.marginBottom = "10px";
-  experimentalSettingsContainerEl.style.border = "1px solid var(--background-modifier-border)";
-  experimentalSettingsContainerEl.style.borderRadius = "5px";
-  experimentalSettingsContainerEl.style.padding = "0.5em";
-  const experimentalSettingsTitleEl = document.createElement("summary");
-  experimentalSettingsTitleEl.innerText = t("Experimental & Unstable Settings");
-  experimentalSettingsTitleEl.style.cursor = "pointer";
-  experimentalSettingsTitleEl.style.fontWeight = "bold";
-  experimentalSettingsTitleEl.style.outline = "none";
-  experimentalSettingsContainerEl.appendChild(experimentalSettingsTitleEl);
-  const experimentalContent = experimentalSettingsContainerEl.createDiv();
-  experimentalContent.style.marginTop = "10px";
-  experimentalContent.style.paddingLeft = "5px";
-  experimentalContent.style.borderLeft = "2px solid var(--background-modifier-border)";
   new import_obsidian3.Setting(containerEl).setName(t("Folders to hide")).setDesc(t("The names of the folders to hide, one per line. Either exact folder-names, startsWith::FOLDERPREFIX, or endsWith::FOLDERSUFFIX")).addTextArea((text) => text.setPlaceholder(t("attachments\nendsWith::_attachments")).setValue(settings.attachmentFolderNames.join("\n")).onChange(async (value) => {
     const newSettingsValue = value.split("\n");
     await manager.removeSpecificFoldersFromObsidianIgnoreList(settings.attachmentFolderNames.filter((e) => !newSettingsValue.includes(e)));
@@ -1074,12 +1069,15 @@ function renderFoldersSettings(containerEl, manager) {
     }
     await plugin.saveSettings();
   }));
-  new import_obsidian3.Setting(experimentalContent).setName(t("[EXPERIMENTAL] Compatibility: quick-explorer by pjeby")).setDesc(t("[WARNING: UNSTABLE] Also hide hidden folders in the https://github.com/pjeby/quick-explorer plugin. Not affiliated with quick-explorer's author.")).addToggle((toggle) => toggle.setValue(settings.enableCompatQuickExplorer).onChange(async (value) => {
+  const experimentalSection = containerEl.createEl("details", { cls: "assistant-module-frame assistant-settings-subsection" });
+  experimentalSection.createEl("summary", {
+    cls: "assistant-settings-section-header",
+    text: t("Experimental & Unstable Settings")
+  });
+  new import_obsidian3.Setting(experimentalSection.createDiv()).setName(t("[EXPERIMENTAL] Compatibility: quick-explorer by pjeby")).setDesc(t("[WARNING: UNSTABLE] Also hide hidden folders in the https://github.com/pjeby/quick-explorer plugin. Not affiliated with quick-explorer's author.")).addToggle((toggle) => toggle.setValue(settings.enableCompatQuickExplorer).onChange(async (value) => {
     settings.enableCompatQuickExplorer = value;
     await plugin.saveSettings();
   }));
-  containerEl.appendChild(document.createElement("br"));
-  containerEl.appendChild(experimentalSettingsContainerEl);
 }
 
 // src/statusbar/spooler.ts
@@ -1315,12 +1313,14 @@ var StatusBarManager = class {
       existsStatus[index] = index in defaultElementStatus;
     }
     let insertPosition = Object.keys(barStatus).length + 1;
+    let foundNewElement = false;
     for (const element of unorderedStatusBarElements) {
       if (element.id in barStatus) continue;
       const status = defaultElementStatus[element.id];
       status.position = insertPosition++;
       barStatus[element.id] = status;
       existsStatus[element.id] = true;
+      foundNewElement = true;
     }
     const disabledStatusBarElements = Object.keys(loadedElementStatus).filter((x) => !existsStatus[x]).map((x) => {
       const parsed = parseElementId(x);
@@ -1331,7 +1331,7 @@ var StatusBarManager = class {
       };
     });
     const rows = unorderedStatusBarElements.concat(disabledStatusBarElements).map((x) => [x, barStatus[x.id].position]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
-    await this.saveStatus(barStatus);
+    if (foundNewElement) await this.saveStatus(barStatus);
     (_a = this.spooler) == null ? void 0 : _a.spoolFix(0);
     return {
       rows,
@@ -1612,18 +1612,18 @@ var PluginsManager = class {
       await this.enqueueStartupOperation(async () => {
         var _a, _b;
         if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-        const obsidian = this.getObsidianPlugins();
+        const obsidian2 = this.getObsidianPlugins();
         if (this.failedStartupInstances.has(pluginId)) {
           await this.runPluginLifecycleMutation(() => this.cleanupFailedStartup(pluginId));
           if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
         }
         const startupType = this.getPluginStartup(pluginId);
-        const isActiveOnStartup = obsidian.enabledPlugins.has(pluginId);
-        const isRunning = Boolean((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded);
+        const isActiveOnStartup = obsidian2.enabledPlugins.has(pluginId);
+        const isRunning = Boolean((_b = (_a = obsidian2.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded);
         switch (startupType) {
           case "disabled" /* disabled */:
             if (isActiveOnStartup || isRunning) {
-              await this.runPluginLifecycleMutation(() => obsidian.disablePluginAndSave(pluginId));
+              await this.runPluginLifecycleMutation(() => obsidian2.disablePluginAndSave(pluginId));
               if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
             }
             break;
@@ -1641,7 +1641,7 @@ var PluginsManager = class {
           case "short" /* short */:
           case "long" /* long */:
             if (isActiveOnStartup) {
-              await this.runPluginLifecycleMutation(() => obsidian.disablePluginAndSave(pluginId));
+              await this.runPluginLifecycleMutation(() => obsidian2.disablePluginAndSave(pluginId));
               if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
               this.scheduleDelayedStartup(pluginId, startupType, runToken, operationToken);
             } else if (!isRunning) {
@@ -1668,13 +1668,13 @@ var PluginsManager = class {
   }
   async enableManagedPlugin(pluginId, persist = false) {
     var _a, _b;
-    const obsidian = this.getObsidianPlugins();
-    const previousInstance = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId];
+    const obsidian2 = this.getObsidianPlugins();
+    const previousInstance = (_a = obsidian2.plugins) == null ? void 0 : _a[pluginId];
     try {
-      const result = persist ? await obsidian.enablePluginAndSave(pluginId) : await obsidian.enablePlugin(pluginId);
+      const result = persist ? await obsidian2.enablePluginAndSave(pluginId) : await obsidian2.enablePlugin(pluginId);
       if (result === false) throw new Error(`Obsidian reported a failed plugin startup: ${pluginId}`);
     } catch (error) {
-      const failedInstance = (_b = obsidian.plugins) == null ? void 0 : _b[pluginId];
+      const failedInstance = (_b = obsidian2.plugins) == null ? void 0 : _b[pluginId];
       if (failedInstance && failedInstance !== previousInstance) {
         this.failedStartupInstances.set(pluginId, failedInstance);
         try {
@@ -1690,10 +1690,10 @@ var PluginsManager = class {
     var _a, _b;
     const failedInstance = this.failedStartupInstances.get(pluginId);
     if (!failedInstance) return;
-    const obsidian = this.getObsidianPlugins();
-    if (((_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) === failedInstance) {
-      await obsidian.disablePlugin(pluginId);
-      if (((_b = obsidian.plugins) == null ? void 0 : _b[pluginId]) === failedInstance) {
+    const obsidian2 = this.getObsidianPlugins();
+    if (((_a = obsidian2.plugins) == null ? void 0 : _a[pluginId]) === failedInstance) {
+      await obsidian2.disablePlugin(pluginId);
+      if (((_b = obsidian2.plugins) == null ? void 0 : _b[pluginId]) === failedInstance) {
         throw new Error(`Failed plugin instance is still registered: ${pluginId}`);
       }
     }
@@ -1733,10 +1733,10 @@ var PluginsManager = class {
       await this.enqueueStartupOperation(async () => {
         var _a, _b;
         if (!this.isActiveRun(runToken, pluginId, operationToken) || this.getPluginStartup(pluginId) !== startupType) return;
-        const obsidian = this.getObsidianPlugins();
+        const obsidian2 = this.getObsidianPlugins();
         await this.cleanupFailedStartup(pluginId);
         if (!this.isActiveRun(runToken, pluginId, operationToken)) return;
-        if ((_b = (_a = obsidian.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded) return;
+        if ((_b = (_a = obsidian2.plugins) == null ? void 0 : _a[pluginId]) == null ? void 0 : _b._loaded) return;
         if (this.settings.showConsoleLog) {
           console.log(t("Starting {id} after a {type} delay").replace("{id}", pluginId).replace("{type}", startupType));
         }
@@ -1871,21 +1871,11 @@ var PluginsSettingsView = class {
         }
       });
     });
-    const pluginsDetails = containerEl.createEl("details");
-    pluginsDetails.style.marginBottom = "10px";
-    pluginsDetails.style.border = "1px solid var(--background-modifier-border)";
-    pluginsDetails.style.borderRadius = "5px";
-    pluginsDetails.style.padding = "0.5em";
+    const pluginsDetails = containerEl.createEl("details", { cls: "assistant-module-frame" });
     pluginsDetails.open = true;
-    const pluginsSummary = pluginsDetails.createEl("summary");
+    const pluginsSummary = pluginsDetails.createEl("summary", { cls: "assistant-settings-section-header" });
     pluginsSummary.setText(t("Plugins"));
-    pluginsSummary.style.cursor = "pointer";
-    pluginsSummary.style.fontWeight = "bold";
-    pluginsSummary.style.outline = "none";
     const pluginsContent = pluginsDetails.createEl("div");
-    pluginsContent.style.marginTop = "10px";
-    pluginsContent.style.paddingLeft = "5px";
-    pluginsContent.style.borderLeft = "2px solid var(--background-modifier-border)";
     const filterContainer = pluginsContent.createDiv();
     const filterLabel = filterContainer.createSpan({ text: t("Filter by: ") });
     filterLabel.style.marginRight = "10px";
@@ -2206,23 +2196,12 @@ function renderSnippetsSettings(containerEl, manager) {
       manager.updateStatusBar();
     });
   });
-  const snippetsSection = containerEl.createEl("details");
-  snippetsSection.style.marginBottom = "10px";
-  snippetsSection.style.border = "1px solid var(--background-modifier-border)";
-  snippetsSection.style.borderRadius = "5px";
-  snippetsSection.style.padding = "0.5em";
-  const snippetsSummary = snippetsSection.createEl("summary");
-  snippetsSummary.style.cursor = "pointer";
-  snippetsSummary.style.fontWeight = "bold";
-  snippetsSummary.innerText = t("Manage Snippets");
-  snippetsSummary.style.outline = "none";
-  const snippetsContainer = snippetsSection.createDiv();
-  snippetsContainer.style.marginTop = "10px";
-  snippetsContainer.style.paddingLeft = "5px";
-  snippetsContainer.style.borderLeft = "2px solid var(--background-modifier-border)";
-  snippetsContainer.addClass("ms-manage-snippets-container");
-  renderSnippetsList(snippetsContainer, manager);
-  containerEl.appendChild(snippetsSection);
+  const snippetsSection = containerEl.createEl("details", { cls: "assistant-module-frame assistant-settings-subsection" });
+  snippetsSection.createEl("summary", {
+    cls: "assistant-settings-section-header",
+    text: t("Manage Snippets")
+  });
+  renderSnippetsList(snippetsSection.createDiv(), manager);
   new import_obsidian11.Setting(containerEl).setName(t("Glass menu effect")).setDesc(
     t("Choose to change the background from the secondary background color of your theme to a glass background.")
   ).addToggle((toggle) => {
@@ -3871,6 +3850,33 @@ var import_obsidian17 = require("obsidian");
 
 // src/sidebar/group-modal.ts
 var import_obsidian16 = require("obsidian");
+
+// src/settings-list.ts
+var obsidian = __toESM(require("obsidian"));
+function createSettingsList(container, heading) {
+  const { SettingGroup } = obsidian;
+  if (typeof SettingGroup === "function") {
+    const group2 = new SettingGroup(container);
+    group2.addClass("assistant-settings-group");
+    if (heading) group2.setHeading(heading);
+    let list = group2.listEl;
+    if (!list) {
+      group2.addSetting((setting) => {
+        list = setting.settingEl.parentElement;
+        setting.settingEl.remove();
+      });
+    }
+    if (list) {
+      list.addClass("assistant-settings-list");
+      return list;
+    }
+  }
+  const group = container.createDiv("assistant-settings-group");
+  if (heading) group.createEl("h3", { text: heading, cls: "assistant-settings-heading" });
+  return group.createDiv("assistant-settings-list");
+}
+
+// src/sidebar/group-modal.ts
 var GroupModal = class extends import_obsidian16.Modal {
   constructor(app, manager, onSubmit) {
     super(app);
@@ -3884,12 +3890,14 @@ var GroupModal = class extends import_obsidian16.Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
+    contentEl.addClass("workspace-assistant-settings-modal");
     contentEl.createEl("h2", { text: t("Add New Group") });
-    new import_obsidian16.Setting(contentEl).setName(t("Master View ID")).setDesc(t("The view ID of the main tab (will be replaced by the group tab)")).addText((text) => text.onChange((value) => this.masterId = value));
-    new import_obsidian16.Setting(contentEl).setName(t("Slave View ID")).setDesc(t("The view ID of the split tab (hidden until group is active)")).addText((text) => text.onChange((value) => this.slaveId = value));
-    new import_obsidian16.Setting(contentEl).setName(t("Group Name")).setDesc(t("Name to display on the tab")).addText((text) => text.onChange((value) => this.groupName = value));
-    new import_obsidian16.Setting(contentEl).setName(t("Group Icon")).setDesc(t("SVG Code or Lucide Icon Name")).addTextArea((text) => text.setPlaceholder('<svg...> or "star"').onChange((value) => this.groupSvg = value));
-    new import_obsidian16.Setting(contentEl).addButton((btn) => btn.setButtonText(t("Add Group")).setCta().onClick(async () => {
+    const fields = createSettingsList(contentEl);
+    new import_obsidian16.Setting(fields).setName(t("Master View ID")).setDesc(t("The view ID of the main tab (will be replaced by the group tab)")).addText((text) => text.onChange((value) => this.masterId = value));
+    new import_obsidian16.Setting(fields).setName(t("Slave View ID")).setDesc(t("The view ID of the split tab (hidden until group is active)")).addText((text) => text.onChange((value) => this.slaveId = value));
+    new import_obsidian16.Setting(fields).setName(t("Group Name")).setDesc(t("Name to display on the tab")).addText((text) => text.onChange((value) => this.groupName = value));
+    new import_obsidian16.Setting(fields).setName(t("Group Icon")).setDesc(t("SVG Code or Lucide Icon Name")).addTextArea((text) => text.setPlaceholder('<svg...> or "star"').onChange((value) => this.groupSvg = value));
+    new import_obsidian16.Setting(fields).addButton((btn) => btn.setButtonText(t("Add Group")).setCta().onClick(async () => {
       if (await this.createGroup()) {
         this.close();
         this.onSubmit();
@@ -3996,19 +4004,9 @@ function renderSidebarSettings(containerEl, manager) {
   );
 }
 function createToggledSubSection(containerEl, title, isEnabled, onToggle, renderBody) {
-  const details = containerEl.createEl("details");
-  details.style.marginBottom = "10px";
-  details.style.border = "1px solid var(--background-modifier-border)";
-  details.style.borderRadius = "5px";
-  details.style.padding = "0.5em";
-  const summary = details.createEl("summary");
-  summary.style.cursor = "pointer";
-  summary.style.display = "flex";
-  summary.style.alignItems = "center";
-  summary.style.justifyContent = "space-between";
-  summary.style.outline = "none";
+  const details = containerEl.createEl("details", { cls: "assistant-module-frame" });
+  const summary = details.createEl("summary", { cls: "assistant-settings-section-header" });
   const titleEl = summary.createEl("span");
-  titleEl.style.fontWeight = "bold";
   titleEl.innerText = title;
   const toggleContainer = summary.createEl("span");
   toggleContainer.addEventListener("click", (e) => e.stopPropagation());
@@ -4016,9 +4014,6 @@ function createToggledSubSection(containerEl, title, isEnabled, onToggle, render
     onToggle(value);
   });
   const content = details.createEl("div");
-  content.style.marginTop = "10px";
-  content.style.paddingLeft = "5px";
-  content.style.borderLeft = "2px solid var(--background-modifier-border)";
   if (isEnabled) {
     renderBody(content);
   } else {
@@ -4433,7 +4428,7 @@ var AssistantSettingsTab = class extends import_obsidian18.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: t("Workspace Assistant Settings") });
+    containerEl.addClass("workspace-assistant-settings");
     this.addPluginSection(
       containerEl,
       t("My Folders"),
@@ -4521,34 +4516,18 @@ var AssistantSettingsTab = class extends import_obsidian18.PluginSettingTab {
     );
   }
   addPluginSection(containerEl, title, isEnabled, onToggle, renderBody) {
-    const details = containerEl.createEl("details");
+    const details = createSettingsList(containerEl).createEl("details", { cls: "assistant-module-frame" });
     details.open = false;
-    details.style.marginBottom = "1em";
-    details.style.border = "1px solid var(--background-modifier-border)";
-    details.style.borderRadius = "5px";
-    const summary = details.createEl("summary");
-    summary.style.display = "flex";
-    summary.style.alignItems = "center";
-    summary.style.justifyContent = "space-between";
-    summary.style.padding = "0.5em 1em";
-    summary.style.cursor = "pointer";
-    summary.style.backgroundColor = "var(--background-secondary)";
-    summary.style.borderTopLeftRadius = "5px";
-    summary.style.borderTopRightRadius = "5px";
+    const summary = details.createEl("summary", { cls: "assistant-settings-section-header" });
     const titleContainer = summary.createEl("div", { cls: "settings-section-title" });
-    titleContainer.style.display = "flex";
-    titleContainer.style.alignItems = "center";
-    titleContainer.style.gap = "10px";
     titleContainer.createEl("strong", { text: title });
     const toggleContainer = summary.createEl("div");
-    toggleContainer.onclick = (e) => e.preventDefault();
+    toggleContainer.onclick = (e) => e.stopPropagation();
     const toggleSetting = new import_obsidian18.Setting(toggleContainer).addToggle((toggle) => toggle.setValue(isEnabled).onChange(onToggle));
     toggleSetting.settingEl.style.border = "none";
     toggleSetting.settingEl.style.padding = "0";
     toggleSetting.infoEl.remove();
     const content = details.createEl("div");
-    content.style.padding = "1em";
-    content.style.borderTop = "1px solid var(--background-modifier-border)";
     if (isEnabled) {
       renderBody(content);
     } else {

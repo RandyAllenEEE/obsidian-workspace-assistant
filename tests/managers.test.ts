@@ -623,6 +623,32 @@ describe("manager stability behavior", () => {
         expect(item.style.order).toBe("3");
     });
 
+    it("saves status bar settings only when discovery adds an item", async () => {
+        const plugin = createPlugin();
+        plugin.settings.myStatusBar.status = {
+            "plugin-snippets;1": { position: 1, visible: false },
+        };
+        const statusBar = document.body.createDiv({ cls: "status-bar" });
+        statusBar.createDiv({ cls: "status-bar-item plugin-snippets" });
+        const manager = new StatusBarManager({ workspace: createWorkspace() } as any, plugin as any);
+        await manager.onload();
+        try {
+            await manager.consolidateSettingsAndElements();
+            expect(plugin.saveSettings).not.toHaveBeenCalled();
+
+            statusBar.createDiv({ cls: "status-bar-item plugin-untracked" });
+            await manager.consolidateSettingsAndElements();
+            expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
+            expect(plugin.settings.myStatusBar.status["plugin-untracked;1"]).toMatchObject({ visible: true });
+            expect(plugin.settings.myStatusBar.status["plugin-snippets;1"]).toEqual({ position: 1, visible: false });
+
+            await manager.consolidateSettingsAndElements();
+            expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
+        } finally {
+            manager.onunload();
+        }
+    });
+
     it("debounces sidebar tabs soft-start refreshes", async () => {
         vi.useFakeTimers();
         const plugin = createPlugin();

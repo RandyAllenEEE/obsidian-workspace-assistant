@@ -140,12 +140,14 @@ export class StatusBarManager {
 
         // Append all previously unknown elements to the end of the list
         let insertPosition = Object.keys(barStatus).length + 1;
+        let foundNewElement = false;
         for (const element of unorderedStatusBarElements) {
             if (element.id in barStatus) continue;
             const status = defaultElementStatus[element.id];
             status.position = insertPosition++;
             barStatus[element.id] = status;
             existsStatus[element.id] = true;
+            foundNewElement = true;
         }
 
         // Serialize elements missing from the status bar
@@ -169,8 +171,7 @@ export class StatusBarManager {
             // @ts-ignore
             .map((x: [StatusBarElement, any]) => x[0]);
 
-        // Save new order of elements (in particular of the previously unknown ones)
-        await this.saveStatus(barStatus);
+        if (foundNewElement) await this.saveStatus(barStatus);
         this.spooler?.spoolFix(0);
 
         return {

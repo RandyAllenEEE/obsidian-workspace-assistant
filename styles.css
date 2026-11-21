@@ -305,40 +305,6 @@ STATUS BAR MENU
 MYSNIPPETS SETTINGS
 ----------------------------------------------------------------*/
 
-.ms-manage-snippets-container {
-    padding: 8px 16px;
-    background-color: var(--background-secondary-alt);
-    border-radius: 8px;
-    margin: 10px 0;
-}
-
-.ms-manage-snippets-container .setting-item {
-    border-top: 1px solid var(--background-modifier-border);
-    padding: 10px 0;
-}
-
-.ms-manage-snippets-container .setting-item:first-child {
-    border-top: none;
-}
-
-.ms-manage-snippets-container .setting-item-name {
-    font-weight: 500;
-    font-size: 0.95em;
-    color: var(--text-normal);
-}
-
-details summary {
-    cursor: pointer;
-    font-weight: 600;
-    padding: 10px 0;
-    color: var(--text-accent);
-    transition: color 0.2s ease;
-}
-
-details summary:hover {
-    color: var(--text-accent-hover);
-}
-
 /*----------------------------------------------------------------
 MYSNIPPETS SUPPORT
 ----------------------------------------------------------------*/
@@ -350,4 +316,204 @@ MYSNIPPETS SUPPORT
 /* Hides all ribbon icons while loading, except the side-dock-settings container which usually stays at bottom */
 .side-dock-actions.assistant-ribbon-loading > .side-dock-ribbon-action {
     display: none !important;
+}
+
+/* Assistant settings presentation */
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) {
+  container: assistant-settings / inline-size;
+  --assistant-settings-radius: var(--radius-l, 12px);
+  --assistant-settings-background: var(--color-base-10, var(--background-secondary));
+  --assistant-settings-divider: var(--background-modifier-border);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-group {
+  margin: 0 0 8px;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-list {
+  background: var(--assistant-settings-background);
+  border: 0;
+  border-radius: var(--assistant-settings-radius);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) :is(.setting-item:not(.setting-item-heading), .assistant-settings-section-header) {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 14px;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-list .setting-item:not(.setting-item-heading) {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-list .setting-item:not(.setting-item-heading) + .setting-item:not(.setting-item-heading) {
+  border-top: 1px solid var(--assistant-settings-divider);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item > .setting-item-info {
+  min-width: 0;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item > .setting-item-control {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  width: auto;
+  min-width: 0;
+  max-width: 50%;
+  gap: 6px;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item:not(.setting-item-heading):not(.assistant-settings-section-header) .setting-item-name {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small, 13px);
+  font-weight: var(--font-normal, 400);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item-description {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller, 12px);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) :is(h3, .assistant-settings-heading, .setting-item-heading:not(.assistant-settings-section-header)) {
+  margin: 16px 0 8px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium, 15px);
+  font-weight: var(--font-semibold, 600);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) > :is(.assistant-settings-group, .assistant-settings-content):first-child > :is(.setting-item-heading, .assistant-settings-heading):first-child {
+  margin-block-start: 0;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item-heading:not(.assistant-settings-section-header) .setting-item-name {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-section-header,
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-section-header .setting-item-name {
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium, 15px);
+  font-weight: var(--font-semibold, 600);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-section-header {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  border: 0;
+  border-radius: var(--assistant-settings-radius);
+  background: transparent;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-section-header:hover {
+  background: var(--background-modifier-hover);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) summary.assistant-settings-section-header {
+  justify-content: flex-start;
+  list-style: none;
+  cursor: pointer;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) summary.assistant-settings-section-header > :last-child:has(.checkbox-container) {
+  margin-inline-start: auto;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) summary.assistant-settings-section-header::-webkit-details-marker {
+  display: none;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) :is(summary.assistant-settings-section-header, .assistant-work-section-header .setting-item-name)::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  margin-inline-end: 2px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(-45deg);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) details[open] > summary.assistant-settings-section-header::before,
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-work-section-header:has(+ .assistant-work-group-body[style*="display: block"]) .setting-item-name::before {
+  transform: rotate(45deg);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) summary.assistant-settings-section-header .setting-item > .setting-item-control {
+  max-width: none;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-section-header > :is(strong, .settings-section-title) {
+  flex: 1 1 auto;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-settings-section-header strong {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-module-frame {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .assistant-module-frame > div {
+  padding: 0 10px 8px;
+  border-top: 1px solid var(--assistant-settings-divider);
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) :is(input, textarea, select) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(.workspace-assistant-settings, .workspace-assistant-settings-modal) :is(button, input, select, textarea, summary, .clickable-icon, .checkbox-container):focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+@container assistant-settings (max-width: 450px) {
+  :is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item:has(.setting-item-control :is(input[type="text"], input[type="password"], textarea, select:not(.is-measuring))) {
+    flex-wrap: wrap;
+  }
+
+  :is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item:has(.setting-item-control :is(input[type="text"], input[type="password"], textarea, select:not(.is-measuring))) > .setting-item-control {
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  :is(.workspace-assistant-settings, .workspace-assistant-settings-modal) .setting-item-control :is(input[type="text"], input[type="password"], textarea) {
+    flex: 1 1 120px;
+  }
+}
+
+.workspace-assistant-settings .assistant-settings-section-header .setting-item {
+  padding: 0;
+  background: transparent;
+}
+
+.workspace-assistant-settings .assistant-settings-subsection {
+  border-top: 1px solid var(--assistant-settings-divider);
+}
+
+.workspace-assistant-settings .assistant-settings-subsection > summary.assistant-settings-section-header {
+  font-size: var(--font-ui-small, 13px);
 }

@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-workspace-assistant",
 	"name": "Workspace Assistant",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "An all-in-one assistant plugin integrating CSS snippets, folder management, lazy loading, status bar customization, and automatic numbering.",
 	"author": "Randy Allen",

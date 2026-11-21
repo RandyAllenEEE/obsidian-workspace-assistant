@@ -113,23 +113,13 @@ class PluginsSettingsView {
             });
 
         // Filter UI moved into styled details
-        const pluginsDetails = containerEl.createEl('details');
-        pluginsDetails.style.marginBottom = '10px';
-        pluginsDetails.style.border = '1px solid var(--background-modifier-border)';
-        pluginsDetails.style.borderRadius = '5px';
-        pluginsDetails.style.padding = '0.5em';
+        const pluginsDetails = containerEl.createEl('details', { cls: 'assistant-module-frame' });
         pluginsDetails.open = true; // Default open for visibility since it's the main feature? User requested "like My Sidebar", sidebar defaults closed typically but for main content maybe open? I'll stick to OPEN since hiding the main list immediately might be confusing, or CLOSED if they want to save space. User said "place in that dropdown", implying hidden by default. I'll set open = false (default behavior of createEl('details') actually) but let's be explicit. User "also has a dropdown menu". I'll default false.
 
-        const pluginsSummary = pluginsDetails.createEl('summary');
+        const pluginsSummary = pluginsDetails.createEl('summary', { cls: 'assistant-settings-section-header' });
         pluginsSummary.setText(t('Plugins')); // Matches previous heading
-        pluginsSummary.style.cursor = 'pointer';
-        pluginsSummary.style.fontWeight = 'bold';
-        pluginsSummary.style.outline = 'none';
 
         const pluginsContent = pluginsDetails.createEl('div');
-        pluginsContent.style.marginTop = '10px';
-        pluginsContent.style.paddingLeft = '5px';
-        pluginsContent.style.borderLeft = '2px solid var(--background-modifier-border)';
 
         // Add filters to content
         const filterContainer = pluginsContent.createDiv();
@@ -208,4 +198,3 @@ class PluginsSettingsView {
         }
     }
 }
-

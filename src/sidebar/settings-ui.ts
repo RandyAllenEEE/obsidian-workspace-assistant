@@ -72,22 +72,12 @@ function createToggledSubSection(
     onToggle: (enabled: boolean) => void,
     renderBody: (el: HTMLElement) => void
 ) {
-    const details = containerEl.createEl('details');
+    const details = containerEl.createEl('details', { cls: 'assistant-module-frame' });
     // Keep closed by default
-    details.style.marginBottom = '10px';
-    details.style.border = '1px solid var(--background-modifier-border)';
-    details.style.borderRadius = '5px';
-    details.style.padding = '0.5em';
 
-    const summary = details.createEl('summary');
-    summary.style.cursor = 'pointer';
-    summary.style.display = 'flex';
-    summary.style.alignItems = 'center';
-    summary.style.justifyContent = 'space-between';
-    summary.style.outline = 'none';
+    const summary = details.createEl('summary', { cls: 'assistant-settings-section-header' });
 
     const titleEl = summary.createEl('span');
-    titleEl.style.fontWeight = 'bold';
     titleEl.innerText = title;
 
     // Toggle
@@ -101,9 +91,6 @@ function createToggledSubSection(
         });
 
     const content = details.createEl('div');
-    content.style.marginTop = '10px';
-    content.style.paddingLeft = '5px';
-    content.style.borderLeft = '2px solid var(--background-modifier-border)';
 
     if (isEnabled) {
         renderBody(content);
